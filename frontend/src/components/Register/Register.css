@@ -1,0 +1,308 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.register-page {
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  background-color: #fafaf9;
+  color: #1c1917;
+  min-height: 100vh;
+  display: flex;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Left side - Form */
+.form-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px;
+  max-width: 580px;
+}
+
+/* Right side - Visual */
+.visual-side {
+  flex: 1;
+  background-color: #1c1917;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+.visual-content {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  color: #ffffff;
+}
+
+.visual-logo {
+  font-size: 32px;
+  font-weight: 700;
+  color: #34d399;
+  margin-bottom: 24px;
+}
+
+.visual-title {
+  font-size: 36px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  line-height: 1.2;
+}
+
+.visual-text {
+  font-size: 16px;
+  color: #a8a29e;
+  max-width: 360px;
+  line-height: 1.6;
+}
+
+.visual-stats {
+  display: flex;
+  gap: 48px;
+  margin-top: 48px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #34d399;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #78716c;
+}
+
+/* Visual side decorations */
+.visual-shape {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.15), transparent);
+}
+
+.visual-shape-1 {
+  width: 400px;
+  height: 400px;
+  top: -150px;
+  right: -150px;
+}
+
+.visual-shape-2 {
+  width: 300px;
+  height: 300px;
+  bottom: -100px;
+  left: -100px;
+}
+
+.visual-shape-3 {
+  width: 200px;
+  height: 200px;
+  top: 50%;
+  left: 10%;
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.1), transparent);
+}
+
+/* Form Side Styles */
+.form-header {
+  margin-bottom: 40px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #78716c;
+  text-decoration: none;
+  margin-bottom: 32px;
+}
+
+.back-link:hover {
+  color: #059669;
+}
+
+.back-link svg {
+  width: 18px;
+  height: 18px;
+}
+
+.form-title {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #1c1917;
+}
+
+.form-subtitle {
+  font-size: 15px;
+  color: #78716c;
+}
+
+.register-form {
+  max-width: 420px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #44403c;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 14px;
+  border: 1px solid #e7e5e4;
+  border-radius: 10px;
+  outline: none;
+  transition: all 0.2s;
+  background-color: #fafaf9;
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+  background-color: #ffffff;
+}
+
+.form-input::placeholder {
+  color: #a8a29e;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #059669;
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.checkbox-group label {
+  font-size: 13px;
+  color: #57534e;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.checkbox-group a {
+  color: #059669;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.checkbox-group a:hover {
+  text-decoration: underline;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 14px 24px;
+  background-color: #059669;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background-color: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.login-link {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 14px;
+  color: #78716c;
+}
+
+.login-link a {
+  color: #059669;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.login-link a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+  .visual-side {
+    display: none;
+  }
+
+  .form-side {
+    max-width: 100%;
+    align-items: center;
+  }
+
+  .form-header,
+  .register-form {
+    width: 100%;
+    max-width: 440px;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-side {
+    padding: 24px;
+  }
+
+  .form-title {
+    font-size: 24px;
+  }
+
+  .form-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
