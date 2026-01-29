@@ -197,6 +197,9 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<AppUser>()
             .HasIndex(u => u.Email)
             .IsUnique();
+        modelBuilder.Entity<AppUser>()
+            .Property(u => u.PwHashed)
+            .HasColumnName("PasswordHashed");
 
         // ✅ Roles table mapping
         // If your actual table is "Roles" (plural), change to .ToTable("Roles")
