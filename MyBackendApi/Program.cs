@@ -35,12 +35,19 @@ public class Program
 
         // -------------------- ENDPOINTS --------------------
 
-        // POST /register  (frontend sends: email, username, password, roleName)
+        // POST /register  (frontend sends: email, username, password, role/roleName)
         app.MapPost("/register", async ([FromBody] RegisterRequest req, AppDbContext db) =>
         {
             var email = (req.email ?? "").Trim().ToLower();
             var username = (req.username ?? "").Trim();
-            var roleName = (req.role ?? "").Trim();
+            var roleName = (req.role ?? req.roleName ?? "").Trim();
+
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                var first = (req.firstname ?? "").Trim();
+                var last = (req.lastname ?? "").Trim();
+                username = $"{first} {last}".Trim();
+            }
 
             if (string.IsNullOrWhiteSpace(email) ||
                 string.IsNullOrWhiteSpace(username) ||
@@ -55,8 +62,10 @@ public class Program
             if (exists)
                 return Results.Conflict(new { message = "Email already registered." });
 
-            // find roleId from Roles table
-            var role = await db.Roles.FirstOrDefaultAsync(r => r.RoleName.ToLower() == roleName.ToLower());
+            // find roleId from Roles table (tolerate whitespace/case differences)
+            var roleKey = NormalizeRoleKey(roleName);
+            var roles = await db.Roles.ToListAsync();
+            var role = roles.FirstOrDefault(r => NormalizeRoleKey(r.RoleName) == roleKey);
             if (role is null)
                 return Results.BadRequest(new { message = $"Role '{roleName}' not found in Roles table." });
 
@@ -72,7 +81,15 @@ public class Program
             };
 
             db.AppUsers.Add(user);
-            await db.SaveChangesAsync();
+            try
+            {
+                await db.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                var msg = ex.GetBaseException().Message;
+                return Results.Problem($"Registration failed: {msg}", statusCode: StatusCodes.Status500InternalServerError);
+            }
 
             return Results.Ok(new
             {
@@ -142,10 +159,27 @@ public class Program
 
         app.Run();
     }
+
+    private static string NormalizeRoleKey(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "";
+        var cleaned = new string(value.Where(c => !char.IsWhiteSpace(c)).ToArray());
+        return cleaned.ToLowerInvariant();
+    }
 }
 
 // -------------------- DTOs --------------------
-public record RegisterRequest(string email, string username, string password, string role);
+public class RegisterRequest
+{
+    public string? email { get; init; }
+    public string? username { get; init; }
+    public string? password { get; init; }
+    public string? role { get; init; }
+    public string? roleName { get; init; }
+    public string? firstname { get; init; }
+    public string? lastname { get; init; }
+}
 public record LoginRequest(string email, string password);
 
 // -------------------- EF Core --------------------
