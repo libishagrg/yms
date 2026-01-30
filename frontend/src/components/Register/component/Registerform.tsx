@@ -18,11 +18,22 @@ export default function Registerform() {
     password: "",
     role: "",
   });
+  const [passwordError, setPasswordError] = React.useState("");
+
+  function isPasswordValid(password: string) {
+    const pattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$]).{9,}$/;
+    return pattern.test(password);
+  }
 
   function handleChange(
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) {
     const { name, value } = event.target;
+    if (name === "password") {
+      if (passwordError && isPasswordValid(value)) {
+        setPasswordError("");
+      }
+    }
     setRegisterInfo((prevInfo) => ({
       ...prevInfo,
       [name]: value,
@@ -31,6 +42,13 @@ export default function Registerform() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!isPasswordValid(registerInfo.password)) {
+      setPasswordError(
+        "Password must be at least 9 characters and include 1 letter, 1 number, and 1 special symbol (!, @, #, $)."
+      );
+      return;
+    }
 
     // ✅ build username from firstname + lastname
     const username =
@@ -125,10 +143,17 @@ export default function Registerform() {
           id="password"
           name="password"
           placeholder="Create a strong password"
+          pattern="^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$]).{9,}$"
+          title="At least 9 characters with 1 letter, 1 number, and 1 special symbol (!, @, #, $)."
           required
           value={registerInfo.password}
           onChange={handleChange}
         />
+        {passwordError ? (
+          <div className="form-error" role="alert">
+            {passwordError}
+          </div>
+        ) : null}
       </div>
 
       <div className="form-group">
