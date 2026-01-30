@@ -19,6 +19,7 @@ export default function Registerform() {
     role: "",
   });
   const [passwordError, setPasswordError] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
 
   function isPasswordValid(password: string) {
     const pattern = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$]).{9,}$/;
@@ -30,7 +31,13 @@ export default function Registerform() {
   ) {
     const { name, value } = event.target;
     if (name === "password") {
-      if (passwordError && isPasswordValid(value)) {
+      if (value === "") {
+        setPasswordError("");
+      } else if (!isPasswordValid(value)) {
+        setPasswordError(
+          "Password must be at least 9 characters and include 1 letter, 1 number, and 1 special symbol (!, @, #, $)."
+        );
+      } else {
         setPasswordError("");
       }
     }
@@ -137,18 +144,67 @@ export default function Registerform() {
         <label className="form-label" htmlFor="password">
           Password
         </label>
-        <input
-          className="form-input"
-          type="password"
-          id="password"
-          name="password"
-          placeholder="Create a strong password"
-          pattern="^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$]).{9,}$"
-          title="At least 9 characters with 1 letter, 1 number, and 1 special symbol (!, @, #, $)."
-          required
-          value={registerInfo.password}
-          onChange={handleChange}
-        />
+        <div className="password-field">
+          <input
+            className="form-input"
+            type={showPassword ? "text" : "password"}
+            id="password"
+            name="password"
+            placeholder="Create a strong password"
+            pattern="^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$]).{9,}$"
+            title="At least 9 characters with 1 letter, 1 number, and 1 special symbol (!, @, #, $)."
+            autoComplete="new-password"
+            required
+            value={registerInfo.password}
+            onChange={handleChange}
+          />
+          <button
+            type="button"
+            className="password-toggle"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            onClick={() => setShowPassword((prev) => !prev)}
+          >
+            {showPassword ? (
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M3 3l18 18M10.73 10.73a3 3 0 004.24 4.24M9.88 5.1A9.94 9.94 0 0112 5c5.52 0 10 5 10 7 0 .76-1.44 3.2-3.9 5.02M6.13 6.13C3.3 8.1 2 10.9 2 12c0 2 4.48 7 10 7 1.31 0 2.57-.28 3.74-.8"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            ) : (
+              <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="3"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                />
+              </svg>
+            )}
+          </button>
+        </div>
         {passwordError ? (
           <div className="form-error" role="alert">
             {passwordError}
