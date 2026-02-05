@@ -141,3 +141,4 @@
 /Users/libishagurung/Documents/YMS /MyBackendApi/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.Abstractions.dll
 /Users/libishagurung/Documents/YMS /MyBackendApi/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.Relational.dll
 /Users/libishagurung/Documents/YMS /MyBackendApi/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.SqlServer.dll
+/Users/libishagurung/Documents/YMS /MyBackendApi/obj/Debug/net10.0/MyBackendApi.sourcelink.json

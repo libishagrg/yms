@@ -21,7 +21,7 @@ export default function Login() {
           <div className="divider">or</div>
 
           <p className="register-link">
-            New to Exotrac? <Link to="/register">Create an account</Link>
+            New to Ytrac? <Link to="/register">Create an account</Link>
           </p>
         </div>
 
