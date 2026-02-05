@@ -46,9 +46,9 @@
     .login-wrapper {
       position: relative;
       z-index: 10;
-      width: 100%;
-      max-width: 440px;
+      width: min(100%, 440px);
       padding: 24px;
+      margin: 0 auto;
     }
 
     .brand-header {

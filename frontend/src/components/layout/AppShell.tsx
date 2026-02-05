@@ -1,20 +1,42 @@
 import { Outlet, useNavigate } from "react-router-dom";
 import { Sidebar } from "../sidebar/Sidebar";
+import {
+  IconChart,
+  IconClipboard,
+  IconGate,
+  IconGrid,
+  IconMapFold,
+  IconSettings,
+  IconSwap,
+  IconUsers,
+} from "../sidebar/icons";
 import "./AppShell.css";
 
 const menuSections = [
   {
-    title: "Main",
+    title: "Overview",
     items: [
-      { id: "home", label: "Home", icon: "🏠" },
-      { id: "analytics", label: "Analytics", icon: "📊" },
+      { id: "home", label: "Dashboard", icon: <IconGrid /> },
+      { id: "yard", label: "Yard Overview", icon: <IconMapFold /> },
     ],
   },
   {
-    title: "Management",
+    title: "Operations",
     items: [
-      { id: "orders", label: "Orders", icon: "🧾" },
-      { id: "inventory", label: "Inventory", icon: "📦" },
+      { id: "vehicles", label: "Vehicles / Trailers", icon: <IconSwap /> },
+      { id: "gate", label: "Gate Activity", icon: <IconGate /> },
+      { id: "tasks", label: "Tasks", icon: <IconClipboard /> },
+    ],
+  },
+  {
+    title: "Analytics",
+    items: [{ id: "reports", label: "Reports", icon: <IconChart /> }],
+  },
+  {
+    title: "Admin",
+    items: [
+      { id: "users", label: "Users", icon: <IconUsers /> },
+      { id: "settings", label: "Settings", icon: <IconSettings /> },
     ],
   },
 ];
@@ -22,7 +44,7 @@ const menuSections = [
 const userProfile = {
   initials: "JD",
   name: "Logout",
-  role: "Manager",
+  role: "Yard Manager",
 };
 
 const routeByItemId: Record<string, string> = {
@@ -42,7 +64,7 @@ export default function AppShell() {
   return (
     <div className="app-shell">
       <Sidebar
-        logo="Ytrac"
+        logo="Exotrac"
         menuSections={menuSections}
         userProfile={userProfile}
         onItemClick={handleSidebarItemClick}

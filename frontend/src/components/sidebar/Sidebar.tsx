@@ -11,7 +11,7 @@ interface MenuSection {
 interface MenuItem {
   id: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 interface UserProfile {
@@ -74,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="sidebar-user">
         <div className="user-avatar">{userProfile.initials}</div>
         <div className="user-info">
-          <p className="user-name">Logout</p>
+          <p className="user-name">{userProfile.name}</p>
           <p className="user-role">{userProfile.role}</p>
         </div>
       </div>
