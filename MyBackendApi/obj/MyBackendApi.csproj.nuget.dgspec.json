@@ -1,31 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\prane\\Downloads\\libishas\\yms\\MyBackendApi\\MyBackendApi.csproj": {}
+    "/Users/libishagurung/Documents/YMS /MyBackendApi/MyBackendApi.csproj": {}
   },
   "projects": {
-    "C:\\Users\\prane\\Downloads\\libishas\\yms\\MyBackendApi\\MyBackendApi.csproj": {
+    "/Users/libishagurung/Documents/YMS /MyBackendApi/MyBackendApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\prane\\Downloads\\libishas\\yms\\MyBackendApi\\MyBackendApi.csproj",
+        "projectUniqueName": "/Users/libishagurung/Documents/YMS /MyBackendApi/MyBackendApi.csproj",
         "projectName": "MyBackendApi",
-        "projectPath": "C:\\Users\\prane\\Downloads\\libishas\\yms\\MyBackendApi\\MyBackendApi.csproj",
-        "packagesPath": "C:\\Users\\prane\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\prane\\Downloads\\libishas\\yms\\MyBackendApi\\obj\\",
+        "projectPath": "/Users/libishagurung/Documents/YMS /MyBackendApi/MyBackendApi.csproj",
+        "packagesPath": "/Users/libishagurung/.nuget/packages/",
+        "outputPath": "/Users/libishagurung/Documents/YMS /MyBackendApi/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\prane\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/Users/libishagurung/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -90,7 +84,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.102/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
