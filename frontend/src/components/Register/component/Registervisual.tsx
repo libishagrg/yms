@@ -6,14 +6,14 @@ export default function Registervisual() {
       <div className="visual-shape visual-shape-3"></div>
 
       <div className="visual-content">
-        <div className="visual-logo">Exotrac</div>
+        <div className="visual-logo">YTrac</div>
         <h2 className="visual-title">
           Streamline your
           <br />
           yard operations
         </h2>
         <p className="visual-text">
-          Join hundreds of logistics companies using Exotrac to optimize their
+          Join hundreds of logistics companies using YTrac to optimize their
           yard management and reduce operational costs.
         </p>
 
