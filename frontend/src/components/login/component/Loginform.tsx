@@ -38,7 +38,12 @@ export default function Loginform() {
       // ✅ go to home
       navigate("/home");
     } catch (error: any) {
-      const msg = error?.response?.data?.message || "Login failed";
+      const data = error?.response?.data;
+      const msg = data?.message || "Login failed";
+      if (data?.needsVerification && data?.email) {
+        navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
+        return;
+      }
       alert(msg);
       console.error("Login Error:", error);
     }

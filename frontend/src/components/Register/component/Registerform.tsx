@@ -78,8 +78,8 @@ export default function Registerform() {
 
       console.log("Register Response:", response.data);
 
-      // ✅ go to login after success
-      navigate("/login");
+      // ✅ go to verify email after success
+      navigate(`/verify-email?email=${encodeURIComponent(registerInfo.email)}`);
     } catch (error: any) {
       const msg = error?.response?.data?.message || "Registration failed";
       console.error("Register Error:", msg);
