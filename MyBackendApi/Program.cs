@@ -134,8 +134,8 @@ public class Program
                 return Results.Conflict(new { message = "Email already registered." });
 
             var roleKey = NormalizeRoleKey(roleName);
-            var role = await roleManager.Roles
-                .FirstOrDefaultAsync(r => NormalizeRoleKey(r.Name ?? "") == roleKey);
+            var roles = await roleManager.Roles.AsNoTracking().ToListAsync();
+            var role = roles.FirstOrDefault(r => NormalizeRoleKey(r.Name ?? "") == roleKey);
 
             if (role is null)
                 return Results.BadRequest(new { message = $"Role '{roleName}' not found in Roles table." });
