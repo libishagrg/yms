@@ -314,14 +314,12 @@
   }
 
   .users-row {
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 0.7fr;
     gap: 8px;
   }
 
   .users-row span:nth-child(4),
-  .users-row span:nth-child(5),
-  .users-row div:nth-child(4),
-  .users-row div:nth-child(5) {
+  .users-row div:nth-child(4) {
     display: none;
   }
 }

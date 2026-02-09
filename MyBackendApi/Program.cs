@@ -94,9 +94,15 @@ public class Program
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var resetDb = builder.Configuration.GetValue<bool>("ResetIdentityDbOnStartup");
+            if (resetDb)
+            {
+                await db.Database.EnsureDeletedAsync();
+            }
+
             await db.Database.EnsureCreatedAsync();
 
-            await IdentitySeeder.NormalizeAsync(scope.ServiceProvider);
+            await IdentitySeeder.SeedAsync(scope.ServiceProvider);
         }
 
         app.MapPost("/register", async ([FromBody] RegisterRequest req,
@@ -140,7 +146,6 @@ public class Program
             {
                 Email = email,
                 UserName = username,
-                RoleId = role.Id,
                 IsActive = false,
                 EmailConfirmed = false,
                 EmailVerificationCode = verificationCode,
@@ -177,7 +182,6 @@ public class Program
                 userId = user.Id,
                 email = user.Email,
                 username = user.UserName,
-                roleId = user.RoleId,
                 roleName = role.Name ?? "Unknown",
                 needsVerification = true
             });
@@ -289,7 +293,6 @@ public class Program
                 userId = user.Id,
                 email = user.Email,
                 username = user.UserName,
-                roleId = user.RoleId,
                 roleName = roles.FirstOrDefault() ?? "Unknown"
             });
         });
@@ -312,7 +315,6 @@ public class Program
                 userId = user.Id,
                 email = user.Email,
                 username = user.UserName,
-                roleId = user.RoleId,
                 roleName = roles.FirstOrDefault() ?? "Unknown"
             });
         }).RequireAuthorization();
@@ -329,7 +331,7 @@ public class Program
         app.MapGet("/trial", async (UserManager<AppUser> userManager) =>
         {
             var users = await userManager.Users
-                .Select(u => new { u.Id, u.Email, u.UserName, u.RoleId, u.IsActive })
+                .Select(u => new { u.Id, u.Email, u.UserName, u.IsActive })
                 .ToListAsync();
 
             return Results.Ok(users);
@@ -435,44 +437,10 @@ public class SmtpSettings
 public class AppDbContext : IdentityDbContext<AppUser, IdentityRole<int>, int>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
-    public DbSet<AppUser> AppUsers => Set<AppUser>();
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-
-        modelBuilder.Entity<AppUser>().ToTable("AppUser", "dbo");
-        modelBuilder.Entity<AppUser>()
-            .HasIndex(u => u.Email)
-            .IsUnique();
-        modelBuilder.Entity<AppUser>()
-            .Property(u => u.Id)
-            .HasColumnName("UserId");
-        modelBuilder.Entity<AppUser>()
-            .Property(u => u.UserName)
-            .HasColumnName("Username");
-        modelBuilder.Entity<AppUser>()
-            .Property(u => u.PasswordHash)
-            .HasColumnName("PasswordHashed");
-        modelBuilder.Entity<AppUser>()
-            .Property(u => u.RoleId)
-            .HasColumnName("RoleID");
-
-        modelBuilder.Entity<IdentityRole<int>>()
-            .ToTable("Roles", "dbo");
-        modelBuilder.Entity<IdentityRole<int>>()
-            .Property(r => r.Id)
-            .HasColumnName("RoleID");
-        modelBuilder.Entity<IdentityRole<int>>()
-            .Property(r => r.Name)
-            .HasColumnName("RoleName");
-    }
 }
 
 public class AppUser : IdentityUser<int>
 {
-    public int RoleId { get; set; }
     public bool IsActive { get; set; } = false;
     [MaxLength(12)]
     public string? EmailVerificationCode { get; set; }
@@ -498,11 +466,33 @@ public class BCryptPasswordHasher : IPasswordHasher<AppUser>
 
 public static class IdentitySeeder
 {
-    public static async Task NormalizeAsync(IServiceProvider services)
+    private static readonly string[] DefaultRoles =
+    {
+        "Administrator",
+        "Gate Security",
+        "Yard Manager",
+        "Yard Jockey",
+        "View Only"
+    };
+
+    public static async Task SeedAsync(IServiceProvider services)
     {
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole<int>>>();
         var userManager = services.GetRequiredService<UserManager<AppUser>>();
 
+        foreach (var roleName in DefaultRoles)
+        {
+            if (!await roleManager.RoleExistsAsync(roleName))
+            {
+                await roleManager.CreateAsync(new IdentityRole<int>(roleName));
+            }
+        }
+
+        await NormalizeAsync(roleManager, userManager);
+    }
+
+    private static async Task NormalizeAsync(RoleManager<IdentityRole<int>> roleManager, UserManager<AppUser> userManager)
+    {
         var roles = await roleManager.Roles.ToListAsync();
         foreach (var role in roles)
         {
