@@ -1,9 +1,11 @@
 import React from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "../../../lib/api";
+import { useAuth } from "../../../contexts/AuthContext";
 
 export default function Loginform() {
   const navigate = useNavigate();
+  const { setAuthenticated } = useAuth();
 
   const [loginInfo, setLoginInfo] = React.useState<{
     email: string;
@@ -27,13 +29,13 @@ export default function Loginform() {
     event.preventDefault();
 
     try {
-      const response = await axios.post("http://localhost:5140/login", {
+      const response = await api.post("/login", {
         email: loginInfo.email,
         password: loginInfo.password,
+        rememberMe: loginInfo.rememberMe,
       });
 
-      // store user if you want
-      localStorage.setItem("user", JSON.stringify(response.data));
+      setAuthenticated(response.data);
 
       // ✅ go to home
       navigate("/home");

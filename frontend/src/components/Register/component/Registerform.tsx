@@ -1,6 +1,6 @@
-import axios from "axios";
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import api from "../../../lib/api";
 
 export default function Registerform() {
   const navigate = useNavigate();
@@ -71,10 +71,7 @@ export default function Registerform() {
     console.log("Register Payload:", payload);
 
     try {
-      const response = await axios.post(
-        "http://localhost:5140/register",
-        payload,
-      );
+      const response = await api.post("/register", payload);
 
       console.log("Register Response:", response.data);
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./sidebar.css";
 
 interface MenuSection {
@@ -25,6 +25,8 @@ interface SidebarProps {
   menuSections: MenuSection[];
   userProfile: UserProfile;
   onItemClick?: (itemId: string) => void;
+  onLogout?: () => void;
+  activeItemId?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -32,10 +34,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   menuSections,
   userProfile,
   onItemClick,
+  onLogout,
+  activeItemId,
 }) => {
   const [activeItem, setActiveItem] = useState<string>(
-    menuSections[0]?.items[0]?.id || ""
+    activeItemId || menuSections[0]?.items[0]?.id || ""
   );
+
+  useEffect(() => {
+    if (activeItemId) {
+      setActiveItem(activeItemId);
+    }
+  }, [activeItemId]);
 
   const handleItemClick = (itemId: string) => {
     setActiveItem(itemId);
@@ -78,6 +88,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <p className="user-role">{userProfile.role}</p>
         </div>
       </div>
+      <button className="sidebar-logout" onClick={onLogout} type="button">
+        Logout
+      </button>
     </aside>
   );
 };

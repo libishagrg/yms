@@ -1,7 +1,7 @@
 import "./VerifyEmail.css";
 import React from "react";
-import axios from "axios";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import api from "../../lib/api";
 
 type Feedback = { type: "success" | "error" | "info"; message: string } | null;
 
@@ -23,7 +23,7 @@ export default function VerifyEmail() {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post("http://localhost:5140/verify-email", {
+      const response = await api.post("/verify-email", {
         email,
         code,
       });
@@ -42,7 +42,7 @@ export default function VerifyEmail() {
     setIsResending(true);
 
     try {
-      const response = await axios.post("http://localhost:5140/resend-verification", {
+      const response = await api.post("/resend-verification", {
         email,
       });
       setFeedback({ type: "info", message: response.data?.message || "Verification email resent." });
@@ -93,11 +93,14 @@ export default function VerifyEmail() {
               id="code"
               name="code"
               inputMode="numeric"
-              pattern="\\d{6}"
+              maxLength={6}
               placeholder="123456"
               required
               value={code}
-              onChange={(event) => setCode(event.target.value)}
+              onChange={(event) => {
+                const next = event.target.value.replace(/[^0-9]/g, "").slice(0, 6);
+                setCode(next);
+              }}
               disabled={verified}
             />
           </div>

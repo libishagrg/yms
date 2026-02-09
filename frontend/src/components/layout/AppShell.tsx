@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Sidebar } from "../sidebar/Sidebar";
 import {
   IconChart,
@@ -11,6 +11,8 @@ import {
   IconUsers,
 } from "../sidebar/icons";
 import "./AppShell.css";
+import { useAuth } from "../../contexts/AuthContext";
+import api from "../../lib/api";
 
 const menuSections = [
   {
@@ -41,24 +43,53 @@ const menuSections = [
   },
 ];
 
-const userProfile = {
-  initials: "JD",
-  name: "Logout",
-  role: "Yard Manager",
-};
-
 const routeByItemId: Record<string, string> = {
   home: "/home",
+  yard: "/yard-overview",
+  vehicles: "/vehicles",
+  gate: "/gate-activity",
+  tasks: "/tasks",
+  reports: "/reports",
+  users: "/users",
+  settings: "/settings",
 };
 
 export default function AppShell() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, setGuest } = useAuth();
 
   const handleSidebarItemClick = (itemId: string) => {
     const target = routeByItemId[itemId];
     if (target) {
       navigate(target);
     }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.post("/logout");
+    } finally {
+      setGuest();
+      navigate("/login", { replace: true });
+    }
+  };
+
+  const itemByRoute = Object.fromEntries(
+    Object.entries(routeByItemId).map(([key, value]) => [value, key]),
+  );
+  const activeItemId = itemByRoute[location.pathname] ?? "home";
+  const userName = user?.username || user?.email || "User";
+  const userInitials = userName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+  const userProfile = {
+    initials: userInitials || "U",
+    name: userName,
+    role: user?.roleName || "Member",
   };
 
   return (
@@ -68,6 +99,8 @@ export default function AppShell() {
         menuSections={menuSections}
         userProfile={userProfile}
         onItemClick={handleSidebarItemClick}
+        onLogout={handleLogout}
+        activeItemId={activeItemId}
       />
       <main className="app-content">
         <Outlet />
