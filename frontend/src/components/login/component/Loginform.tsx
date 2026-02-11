@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../../../lib/api";
 import { useAuth } from "../../../contexts/AuthContext";
 
@@ -17,6 +17,10 @@ export default function Loginform() {
     password: "",
     rememberMe: false,
   });
+  const trimmedEmail = loginInfo.email.trim();
+  const verifyLink = trimmedEmail
+    ? `/verify-email?email=${encodeURIComponent(trimmedEmail)}`
+    : "/verify-email";
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { name, value, type, checked } = event.target;
@@ -127,25 +131,9 @@ export default function Loginform() {
       </form>
 
       <div className="verify-inline">
-        <div className="verify-inline-header">
-          <h2 className="verify-inline-title">Verify your email</h2>
-          <p className="verify-inline-subtitle">
-            Registered but didn't verify yet? You can verify your email anytime.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={() => {
-            const email = loginInfo.email?.trim();
-            const target = email
-              ? `/verify-email?email=${encodeURIComponent(email)}`
-              : "/verify-email";
-            navigate(target);
-          }}
-        >
-          Go to verification
-        </button>
+        <p className="register-link verify-link">
+          Registered but didn't verify? <Link to={verifyLink}>Verify your email</Link>
+        </p>
       </div>
     </>
   );

@@ -224,47 +224,12 @@
       transform: translateY(0);
     }
 
-    .btn-secondary {
-      width: 100%;
-      padding: 12px 18px;
-      background-color: #FFFFFF;
-      color: #059669;
-      font-size: 14px;
-      font-weight: 600;
-      border: 1px solid #D1FAE5;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .btn-secondary:hover:not(:disabled) {
-      background-color: #ECFDF5;
-      border-color: #A7F3D0;
-    }
-
     .verify-inline {
-      margin-top: 26px;
-      padding: 20px;
-      border: 1px dashed #E7E5E4;
-      border-radius: 12px;
-      background-color: #FAFAF9;
+      margin-top: 18px;
     }
 
-    .verify-inline-header {
-      margin-bottom: 16px;
-    }
-
-    .verify-inline-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 4px;
-      color: #1C1917;
-    }
-
-    .verify-inline-subtitle {
-      font-size: 13px;
-      color: #78716C;
-      line-height: 1.4;
+    .verify-inline .register-link {
+      margin: 0;
     }
 
     .divider {
