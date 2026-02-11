@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../lib/api";
 import { useAuth } from "../../../contexts/AuthContext";
 
-type VerifyFeedback = { type: "success" | "error" | "info"; message: string } | null;
-
 export default function Loginform() {
   const navigate = useNavigate();
   const { setAuthenticated } = useAuth();
@@ -19,13 +17,6 @@ export default function Loginform() {
     password: "",
     rememberMe: false,
   });
-
-  const [verifyEmail, setVerifyEmail] = React.useState("");
-  const [verifyCode, setVerifyCode] = React.useState("");
-  const [verifyFeedback, setVerifyFeedback] = React.useState<VerifyFeedback>(null);
-  const [isVerifying, setIsVerifying] = React.useState(false);
-  const [isResending, setIsResending] = React.useState(false);
-  const [isVerified, setIsVerified] = React.useState(false);
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { name, value, type, checked } = event.target;
@@ -53,60 +44,11 @@ export default function Loginform() {
       const data = error?.response?.data;
       const msg = data?.message || "Login failed";
       if (data?.needsVerification && data?.email) {
-        setVerifyEmail(data.email);
-        setVerifyCode("");
-        setIsVerified(false);
-        setVerifyFeedback({
-          type: "info",
-          message: data?.message || "Your account needs verification. Use the form below.",
-        });
+        navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
         return;
       }
       alert(msg);
       console.error("Login Error:", error);
-    }
-  }
-
-  async function handleVerifySubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setVerifyFeedback(null);
-    setIsVerifying(true);
-
-    try {
-      const response = await api.post("/verify-email", {
-        email: verifyEmail,
-        code: verifyCode,
-      });
-      setIsVerified(true);
-      setVerifyFeedback({
-        type: "success",
-        message: response.data?.message || "Email verified.",
-      });
-    } catch (error: any) {
-      const msg = error?.response?.data?.message || "Verification failed";
-      setVerifyFeedback({ type: "error", message: msg });
-    } finally {
-      setIsVerifying(false);
-    }
-  }
-
-  async function handleResend() {
-    setVerifyFeedback(null);
-    setIsResending(true);
-
-    try {
-      const response = await api.post("/resend-verification", {
-        email: verifyEmail,
-      });
-      setVerifyFeedback({
-        type: "info",
-        message: response.data?.message || "Verification email resent.",
-      });
-    } catch (error: any) {
-      const msg = error?.response?.data?.message || "Resend failed";
-      setVerifyFeedback({ type: "error", message: msg });
-    } finally {
-      setIsResending(false);
     }
   }
 
@@ -188,70 +130,22 @@ export default function Loginform() {
         <div className="verify-inline-header">
           <h2 className="verify-inline-title">Verify your email</h2>
           <p className="verify-inline-subtitle">
-            Registered but didn't verify? Enter your email, resend the code, and confirm.
+            Registered but didn't verify yet? You can verify your email anytime.
           </p>
         </div>
-
-        <form onSubmit={handleVerifySubmit} className="verify-inline-form">
-          <div className="form-group">
-            <label className="form-label" htmlFor="verify-email">
-              Email address
-            </label>
-            <input
-              className="form-input"
-              type="email"
-              id="verify-email"
-              name="verify-email"
-              placeholder="you@company.com"
-              required
-              value={verifyEmail}
-              onChange={(event) => setVerifyEmail(event.target.value)}
-              disabled={isVerified}
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="verify-code">
-              Verification code
-            </label>
-            <input
-              className="form-input"
-              type="text"
-              id="verify-code"
-              name="verify-code"
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="123456"
-              required
-              value={verifyCode}
-              onChange={(event) => {
-                const next = event.target.value.replace(/[^0-9]/g, "").slice(0, 6);
-                setVerifyCode(next);
-              }}
-              disabled={isVerified}
-            />
-          </div>
-
-          {verifyFeedback ? (
-            <div className={`verify-feedback ${verifyFeedback.type}`} role="alert">
-              {verifyFeedback.message}
-            </div>
-          ) : null}
-
-          <div className="verify-inline-actions">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={handleResend}
-              disabled={isResending || isVerified || !verifyEmail}
-            >
-              {isResending ? "Sending..." : "Resend code"}
-            </button>
-            <button type="submit" className="btn-primary btn-primary-inline" disabled={isVerifying || isVerified}>
-              {isVerifying ? "Verifying..." : "Verify Email"}
-            </button>
-          </div>
-        </form>
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => {
+            const email = loginInfo.email?.trim();
+            const target = email
+              ? `/verify-email?email=${encodeURIComponent(email)}`
+              : "/verify-email";
+            navigate(target);
+          }}
+        >
+          Go to verification
+        </button>
       </div>
     </>
   );

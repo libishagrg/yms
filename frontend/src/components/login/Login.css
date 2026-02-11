@@ -224,13 +224,8 @@
       transform: translateY(0);
     }
 
-    .btn-primary-inline {
-      width: auto;
-      flex: 1;
-    }
-
     .btn-secondary {
-      flex: 1;
+      width: 100%;
       padding: 12px 18px;
       background-color: #FFFFFF;
       color: #059669;
@@ -245,11 +240,6 @@
     .btn-secondary:hover:not(:disabled) {
       background-color: #ECFDF5;
       border-color: #A7F3D0;
-    }
-
-    .btn-secondary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
     }
 
     .verify-inline {
@@ -275,43 +265,6 @@
       font-size: 13px;
       color: #78716C;
       line-height: 1.4;
-    }
-
-    .verify-inline-form {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .verify-inline-form .form-group {
-      margin-bottom: 0;
-    }
-
-    .verify-feedback {
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 13px;
-    }
-
-    .verify-feedback.success {
-      background-color: rgba(16, 185, 129, 0.12);
-      color: #065F46;
-    }
-
-    .verify-feedback.error {
-      background-color: rgba(248, 113, 113, 0.12);
-      color: #991B1B;
-    }
-
-    .verify-feedback.info {
-      background-color: rgba(14, 116, 144, 0.12);
-      color: #0E7490;
-    }
-
-    .verify-inline-actions {
-      display: flex;
-      gap: 12px;
-      align-items: center;
     }
 
     .divider {
@@ -405,8 +358,4 @@
         margin-bottom: 32px;
       }
 
-      .verify-inline-actions {
-        flex-direction: column;
-        align-items: stretch;
-      }
     }
