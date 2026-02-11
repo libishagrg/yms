@@ -81,6 +81,7 @@ public class Program
         builder.Services.AddSwaggerGen();
 
         builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+        var frontendUrl = builder.Configuration.GetValue<string>("FrontendUrl") ?? "http://localhost:5173";
 
         var app = builder.Build();
 
@@ -169,7 +170,8 @@ public class Program
 
             try
             {
-                await SendVerificationEmailAsync(smtpOptions.Value, user.Email ?? "", user.UserName ?? "", verificationCode);
+                var verifyLink = BuildVerificationLink(frontendUrl, user.Email ?? "");
+                await SendVerificationEmailAsync(smtpOptions.Value, user.Email ?? "", user.UserName ?? "", verificationCode, verifyLink, null);
             }
             catch (Exception ex)
             {
@@ -248,7 +250,8 @@ public class Program
 
             try
             {
-                await SendVerificationEmailAsync(smtpOptions.Value, user.Email ?? "", user.UserName ?? "", verificationCode);
+                var verifyLink = BuildVerificationLink(frontendUrl, user.Email ?? "");
+                await SendVerificationEmailAsync(smtpOptions.Value, user.Email ?? "", user.UserName ?? "", verificationCode, verifyLink, null);
             }
             catch (Exception ex)
             {
@@ -376,6 +379,95 @@ public class Program
             return Results.Ok(result);
         });
 
+        app.MapPost("/users", async ([FromBody] CreateUserRequest req,
+            UserManager<AppUser> userManager,
+            RoleManager<IdentityRole<int>> roleManager,
+            IOptions<SmtpSettings> smtpOptions) =>
+        {
+            var email = (req.email ?? "").Trim().ToLowerInvariant();
+            var roleName = (req.role ?? req.roleName ?? "").Trim();
+            var firstName = (req.firstname ?? "").Trim();
+            var lastName = (req.lastname ?? "").Trim();
+
+            if (string.IsNullOrWhiteSpace(email) ||
+                string.IsNullOrWhiteSpace(roleName) ||
+                string.IsNullOrWhiteSpace(firstName) ||
+                string.IsNullOrWhiteSpace(lastName))
+            {
+                return Results.BadRequest(new { message = "First name, last name, email, and role are required." });
+            }
+
+            var existing = await userManager.FindByEmailAsync(email);
+            if (existing is not null)
+                return Results.Conflict(new { message = "Email already registered." });
+
+            var roleKey = NormalizeRoleKey(roleName);
+            var roles = await roleManager.Roles.AsNoTracking().ToListAsync();
+            var role = roles.FirstOrDefault(r => NormalizeRoleKey(r.Name ?? "") == roleKey);
+
+            if (role is null)
+                return Results.BadRequest(new { message = $"Role '{roleName}' not found in Roles table." });
+
+            var verificationCode = GenerateVerificationCode();
+            var tempPassword = GenerateTemporaryPassword();
+
+            var user = new AppUser
+            {
+                Email = email,
+                UserName = email,
+                FirstName = firstName,
+                LastName = lastName,
+                IsActive = false,
+                EmailConfirmed = false,
+                EmailVerificationCode = verificationCode,
+                EmailVerificationExpiresUtc = DateTime.UtcNow.AddMinutes(15)
+            };
+
+            var createResult = await userManager.CreateAsync(user, tempPassword);
+            if (!createResult.Succeeded)
+            {
+                var errorMessage = string.Join(" ", createResult.Errors.Select(e => e.Description));
+                return Results.BadRequest(new { message = errorMessage });
+            }
+
+            var roleResult = await userManager.AddToRoleAsync(user, role.Name!);
+            if (!roleResult.Succeeded)
+            {
+                var errorMessage = string.Join(" ", roleResult.Errors.Select(e => e.Description));
+                return Results.BadRequest(new { message = errorMessage });
+            }
+
+            try
+            {
+                var verifyLink = BuildVerificationLink(frontendUrl, user.Email ?? "");
+                await SendVerificationEmailAsync(
+                    smtpOptions.Value,
+                    user.Email ?? "",
+                    $"{firstName} {lastName}".Trim(),
+                    verificationCode,
+                    verifyLink,
+                    tempPassword);
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem($"User created but email failed: {ex.Message}",
+                    statusCode: StatusCodes.Status500InternalServerError);
+            }
+
+            return Results.Ok(new
+            {
+                id = user.Id,
+                email = user.Email,
+                username = user.UserName,
+                firstName,
+                lastName,
+                displayName = $"{firstName} {lastName}".Trim(),
+                isActive = user.IsActive,
+                emailConfirmed = user.EmailConfirmed,
+                roleName = role.Name ?? "Unknown"
+            });
+        });
+
         app.MapPatch("/users/{id:int}/toggle-active", async (int id, AppDbContext db) =>
         {
             var user = await db.Users.FindAsync(id);
@@ -472,7 +564,44 @@ public class Program
         return CryptographicOperations.FixedTimeEquals(left, right);
     }
 
-    private static async Task SendVerificationEmailAsync(SmtpSettings settings, string toEmail, string username, string code)
+    private static string BuildVerificationLink(string baseUrl, string email)
+    {
+        var trimmed = (baseUrl ?? "").Trim().TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(trimmed))
+            trimmed = "http://localhost:5173";
+        return $"{trimmed}/verify-email?email={Uri.EscapeDataString(email)}";
+    }
+
+    private static string GenerateTemporaryPassword()
+    {
+        const string letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const string digits = "0123456789";
+        const string specials = "!@#$";
+        const string all = letters + digits + specials;
+
+        var length = 12;
+        var chars = new List<char>(length)
+        {
+            letters[RandomNumberGenerator.GetInt32(letters.Length)],
+            digits[RandomNumberGenerator.GetInt32(digits.Length)],
+            specials[RandomNumberGenerator.GetInt32(specials.Length)]
+        };
+
+        for (var i = chars.Count; i < length; i++)
+        {
+            chars.Add(all[RandomNumberGenerator.GetInt32(all.Length)]);
+        }
+
+        return new string(chars.OrderBy(_ => RandomNumberGenerator.GetInt32(int.MaxValue)).ToArray());
+    }
+
+    private static async Task SendVerificationEmailAsync(
+        SmtpSettings settings,
+        string toEmail,
+        string username,
+        string code,
+        string verifyLink,
+        string? tempPassword)
     {
         if (string.IsNullOrWhiteSpace(settings.Host) ||
             string.IsNullOrWhiteSpace(settings.Username) ||
@@ -482,13 +611,37 @@ public class Program
             throw new InvalidOperationException("SMTP settings are missing or incomplete.");
         }
 
+        var lines = new List<string>
+        {
+            $"Hi {username},",
+            "",
+            "Your verification code is:",
+            code,
+            "",
+            "Verify your email:",
+            verifyLink,
+            "",
+            "This code expires in 15 minutes."
+        };
+
+        if (!string.IsNullOrWhiteSpace(tempPassword))
+        {
+            lines.Add("");
+            lines.Add("Temporary password:");
+            lines.Add(tempPassword);
+            lines.Add("Please change your password after signing in.");
+        }
+
+        lines.Add("");
+        lines.Add("If you didn't create this account, you can ignore this email.");
+
         var message = new MimeMessage();
         message.From.Add(new MailboxAddress(settings.FromName ?? "YMS", settings.FromEmail));
         message.To.Add(new MailboxAddress(username, toEmail));
         message.Subject = "Verify your email";
         message.Body = new TextPart("plain")
         {
-            Text = $"Hi {username},\n\nYour verification code is: {code}\n\nThis code expires in 15 minutes.\n\nIf you didn't create this account, you can ignore this email."
+            Text = string.Join("\n", lines)
         };
 
         using var client = new SmtpClient();
@@ -520,6 +673,14 @@ public class LoginRequest
 public record VerifyEmailRequest(string email, string code);
 public record ResendVerificationRequest(string email);
 public record UpdateUserRoleRequest(string roleName);
+public class CreateUserRequest
+{
+    public string? firstname { get; init; }
+    public string? lastname { get; init; }
+    public string? email { get; init; }
+    public string? role { get; init; }
+    public string? roleName { get; init; }
+}
 
 public class SmtpSettings
 {

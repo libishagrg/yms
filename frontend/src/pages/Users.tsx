@@ -64,6 +64,15 @@ export default function Users() {
   const [selectedRole, setSelectedRole] = React.useState(roleNames[0] ?? "");
   const [savingRoleId, setSavingRoleId] = React.useState<number | null>(null);
   const [togglingId, setTogglingId] = React.useState<number | null>(null);
+  const [isAddOpen, setIsAddOpen] = React.useState(false);
+  const [isAdding, setIsAdding] = React.useState(false);
+  const [addError, setAddError] = React.useState<string | null>(null);
+  const [addForm, setAddForm] = React.useState({
+    firstname: "",
+    lastname: "",
+    email: "",
+    role: roleNames[0] ?? "",
+  });
 
   React.useEffect(() => {
     let active = true;
@@ -162,7 +171,9 @@ export default function Users() {
         </div>
         <div className="users-header-actions">
           <button className="btn-secondary">Export</button>
-          <button className="btn-primary">Add User</button>
+          <button className="btn-primary" type="button" onClick={() => setIsAddOpen(true)}>
+            Add User
+          </button>
         </div>
       </header>
 
@@ -321,6 +332,124 @@ export default function Users() {
           )}
         </div>
       </section>
+
+      {isAddOpen ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card">
+            <div className="modal-header">
+              <h3>Add User</h3>
+              <button
+                type="button"
+                className="modal-close"
+                aria-label="Close"
+                onClick={() => setIsAddOpen(false)}
+              >
+                x
+              </button>
+            </div>
+
+            <form
+              className="modal-form"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                setIsAdding(true);
+                setAddError(null);
+                try {
+                  const response = await api.post("/users", addForm);
+                  const created = response.data;
+                  setUsers((prev) => [created, ...prev]);
+                  setIsAddOpen(false);
+                  setAddForm({
+                    firstname: "",
+                    lastname: "",
+                    email: "",
+                    role: roleNames[0] ?? "",
+                  });
+                } catch (error: any) {
+                  const msg = error?.response?.data?.message || "Failed to add user.";
+                  setAddError(msg);
+                } finally {
+                  setIsAdding(false);
+                }
+              }}
+            >
+              <div className="modal-grid">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="add-firstname">First name</label>
+                  <input
+                    className="form-input"
+                    id="add-firstname"
+                    type="text"
+                    value={addForm.firstname}
+                    onChange={(event) =>
+                      setAddForm((prev) => ({ ...prev, firstname: event.target.value }))
+                    }
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="add-lastname">Last name</label>
+                  <input
+                    className="form-input"
+                    id="add-lastname"
+                    type="text"
+                    value={addForm.lastname}
+                    onChange={(event) =>
+                      setAddForm((prev) => ({ ...prev, lastname: event.target.value }))
+                    }
+                    required
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="add-email">Email</label>
+                <input
+                  className="form-input"
+                  id="add-email"
+                  type="email"
+                  value={addForm.email}
+                  onChange={(event) =>
+                    setAddForm((prev) => ({ ...prev, email: event.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="add-role">Role</label>
+                <select
+                  className="form-select"
+                  id="add-role"
+                  value={addForm.role}
+                  onChange={(event) =>
+                    setAddForm((prev) => ({ ...prev, role: event.target.value }))
+                  }
+                  required
+                >
+                  {roleNames.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {addError ? <div className="form-error">{addError}</div> : null}
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setIsAddOpen(false)}
+                  disabled={isAdding}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" disabled={isAdding}>
+                  {isAdding ? "Adding..." : "Add"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
