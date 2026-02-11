@@ -280,6 +280,47 @@
   gap: 8px;
 }
 
+.action-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.role-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+  background: #ffffff;
+  color: #111827;
+  min-width: 140px;
+}
+
+.btn-mini {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-mini-primary {
+  background: #0f8f6d;
+  color: #ffffff;
+}
+
+.btn-mini-ghost {
+  background: #ffffff;
+  color: #111827;
+  border-color: #e5e7eb;
+}
+
+.btn-mini:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .icon-button {
   width: 34px;
   height: 34px;
@@ -294,6 +335,11 @@
 
 .icon-button:hover {
   border-color: #cbd5e1;
+}
+
+.icon-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .icon-button svg {

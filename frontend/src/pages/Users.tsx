@@ -24,6 +24,7 @@ const roleOptions = [
   "Gate Security",
   "View Only",
 ];
+const roleNames = roleOptions.slice(1);
 
 function getInitials(name?: string | null, email?: string | null) {
   const source = (name ?? "").trim() || (email ?? "").trim();
@@ -59,6 +60,10 @@ export default function Users() {
   const [search, setSearch] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState("All Roles");
   const [statusFilter, setStatusFilter] = React.useState("All Status");
+  const [editingUserId, setEditingUserId] = React.useState<number | null>(null);
+  const [selectedRole, setSelectedRole] = React.useState(roleNames[0] ?? "");
+  const [savingRoleId, setSavingRoleId] = React.useState<number | null>(null);
+  const [togglingId, setTogglingId] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     let active = true;
@@ -84,6 +89,41 @@ export default function Users() {
       active = false;
     };
   }, []);
+
+  async function handleToggleActive(user: UserRecord) {
+    setTogglingId(user.id);
+    try {
+      const response = await api.patch(`/users/${user.id}/toggle-active`);
+      const nextIsActive =
+        typeof response.data?.isActive === "boolean" ? response.data.isActive : !user.isActive;
+      setUsers((prev) =>
+        prev.map((entry) => (entry.id === user.id ? { ...entry, isActive: nextIsActive } : entry)),
+      );
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || "Failed to update status.";
+      alert(msg);
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
+  async function handleRoleSave(userId: number) {
+    if (!selectedRole) return;
+    setSavingRoleId(userId);
+    try {
+      const response = await api.put(`/users/${userId}/role`, { roleName: selectedRole });
+      const nextRole = response.data?.roleName ?? selectedRole;
+      setUsers((prev) =>
+        prev.map((entry) => (entry.id === userId ? { ...entry, roleName: nextRole } : entry)),
+      );
+      setEditingUserId(null);
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || "Failed to update role.";
+      alert(msg);
+    } finally {
+      setSavingRoleId(null);
+    }
+  }
 
   const filteredUsers = React.useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -221,12 +261,60 @@ export default function Users() {
                   {user.isActive ? "Active" : "Inactive"}
                 </div>
                 <div className="action-cell">
-                  <button className="icon-button" aria-label="Edit user">
-                    <img src={editIcon} alt="" className="icon-image" />
-                  </button>
-                  <button className="icon-button" aria-label="Delete user">
-                    <img src={deleteIcon} alt="" className="icon-image" />
-                  </button>
+                  {editingUserId === user.id ? (
+                    <div className="action-edit">
+                      <select
+                        className="role-select"
+                        value={selectedRole}
+                        onChange={(event) => setSelectedRole(event.target.value)}
+                      >
+                        {roleNames.map((role) => (
+                          <option key={role} value={role}>
+                            {role}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className="btn-mini btn-mini-primary"
+                        onClick={() => handleRoleSave(user.id)}
+                        disabled={savingRoleId === user.id}
+                      >
+                        OK
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-mini btn-mini-ghost"
+                        onClick={() => setEditingUserId(null)}
+                        disabled={savingRoleId === user.id}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="icon-button"
+                        aria-label="Edit role"
+                        onClick={() => {
+                          setSelectedRole(user.roleName ?? roleNames[0] ?? "");
+                          setEditingUserId(user.id);
+                        }}
+                      >
+                        <img src={editIcon} alt="" className="icon-image" />
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-button"
+                        aria-label={user.isActive ? "Disable user" : "Enable user"}
+                        onClick={() => handleToggleActive(user)}
+                        disabled={togglingId === user.id}
+                      >
+                        <img src={deleteIcon} alt="" className="icon-image" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))

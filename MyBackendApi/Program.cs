@@ -273,6 +273,10 @@ public class Program
                 return Results.Json(new { message = "Email not found" },
                     statusCode: StatusCodes.Status404NotFound);
 
+            if (!user.IsActive)
+                return Results.Json(new { message = "Account is disabled." },
+                    statusCode: StatusCodes.Status403Forbidden);
+
             if (!user.EmailConfirmed)
                 return Results.Json(new
                 {
@@ -372,6 +376,54 @@ public class Program
             return Results.Ok(result);
         });
 
+        app.MapPatch("/users/{id:int}/toggle-active", async (int id, AppDbContext db) =>
+        {
+            var user = await db.Users.FindAsync(id);
+            if (user is null)
+                return Results.NotFound(new { message = "User not found." });
+
+            user.IsActive = !user.IsActive;
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new { id = user.Id, isActive = user.IsActive });
+        });
+
+        app.MapPut("/users/{id:int}/role", async (int id, [FromBody] UpdateUserRoleRequest req,
+            UserManager<AppUser> userManager,
+            RoleManager<IdentityRole<int>> roleManager) =>
+        {
+            if (string.IsNullOrWhiteSpace(req.roleName))
+                return Results.BadRequest(new { message = "Role name is required." });
+
+            var user = await userManager.FindByIdAsync(id.ToString());
+            if (user is null)
+                return Results.NotFound(new { message = "User not found." });
+
+            var role = await roleManager.FindByNameAsync(req.roleName);
+            if (role is null)
+                return Results.BadRequest(new { message = "Role not found." });
+
+            var currentRoles = await userManager.GetRolesAsync(user);
+            if (currentRoles.Count > 0)
+            {
+                var removeResult = await userManager.RemoveFromRolesAsync(user, currentRoles);
+                if (!removeResult.Succeeded)
+                {
+                    var errorMessage = string.Join(" ", removeResult.Errors.Select(e => e.Description));
+                    return Results.Problem(errorMessage, statusCode: StatusCodes.Status500InternalServerError);
+                }
+            }
+
+            var addResult = await userManager.AddToRoleAsync(user, role.Name ?? req.roleName);
+            if (!addResult.Succeeded)
+            {
+                var errorMessage = string.Join(" ", addResult.Errors.Select(e => e.Description));
+                return Results.Problem(errorMessage, statusCode: StatusCodes.Status500InternalServerError);
+            }
+
+            return Results.Ok(new { id = user.Id, roleName = role.Name ?? req.roleName });
+        });
+
         app.MapGet("/trial", async (UserManager<AppUser> userManager) =>
         {
             var users = await userManager.Users
@@ -467,6 +519,7 @@ public class LoginRequest
 
 public record VerifyEmailRequest(string email, string code);
 public record ResendVerificationRequest(string email);
+public record UpdateUserRoleRequest(string roleName);
 
 public class SmtpSettings
 {
