@@ -170,7 +170,7 @@ public class Program
 
             try
             {
-                var verifyLink = BuildVerificationLink(frontendUrl, user.Email ?? "");
+                var verifyLink = BuildVerificationLink(frontendUrl, user.Email ?? "", false);
                 await SendVerificationEmailAsync(smtpOptions.Value, user.Email ?? "", user.UserName ?? "", verificationCode, verifyLink, null);
             }
             catch (Exception ex)
@@ -227,6 +227,58 @@ public class Program
             return Results.Ok(new { message = "Email verified. You can now log in." });
         });
 
+        app.MapPost("/verify-email-set-password", async ([FromBody] VerifyEmailSetPasswordRequest req,
+            UserManager<AppUser> userManager) =>
+        {
+            var email = (req.email ?? "").Trim().ToLowerInvariant();
+            var code = NormalizeVerificationCode(req.code);
+            var newPassword = req.newPassword ?? "";
+
+            if (string.IsNullOrWhiteSpace(email) ||
+                string.IsNullOrWhiteSpace(code) ||
+                string.IsNullOrWhiteSpace(newPassword))
+                return Results.BadRequest(new { message = "Email, code, and new password are required." });
+
+            if (code.Length != 6)
+                return Results.BadRequest(new { message = "Verification code must be 6 digits." });
+
+            var user = await userManager.FindByEmailAsync(email);
+            if (user is null)
+                return Results.NotFound(new { message = "Email not found." });
+
+            if (string.IsNullOrWhiteSpace(user.EmailVerificationCode) || user.EmailVerificationExpiresUtc is null)
+                return Results.BadRequest(new { message = "No verification code found. Please request a new one." });
+
+            if (user.EmailVerificationExpiresUtc < DateTime.UtcNow)
+                return Results.BadRequest(new { message = "Verification code expired. Please request a new one." });
+
+            if (!CodesMatch(user.EmailVerificationCode, code))
+                return Results.BadRequest(new { message = "Invalid verification code." });
+
+            var removeResult = await userManager.RemovePasswordAsync(user);
+            if (!removeResult.Succeeded)
+            {
+                var errorMessage = string.Join(" ", removeResult.Errors.Select(e => e.Description));
+                return Results.Problem(errorMessage, statusCode: StatusCodes.Status500InternalServerError);
+            }
+
+            var addResult = await userManager.AddPasswordAsync(user, newPassword);
+            if (!addResult.Succeeded)
+            {
+                var errorMessage = string.Join(" ", addResult.Errors.Select(e => e.Description));
+                return Results.BadRequest(new { message = errorMessage });
+            }
+
+            user.IsActive = true;
+            user.EmailConfirmed = true;
+            user.EmailVerificationCode = null;
+            user.EmailVerificationExpiresUtc = null;
+
+            await userManager.UpdateAsync(user);
+
+            return Results.Ok(new { message = "Email verified. Password set." });
+        });
+
         app.MapPost("/resend-verification", async ([FromBody] ResendVerificationRequest req,
             UserManager<AppUser> userManager,
             IOptions<SmtpSettings> smtpOptions) =>
@@ -250,7 +302,7 @@ public class Program
 
             try
             {
-                var verifyLink = BuildVerificationLink(frontendUrl, user.Email ?? "");
+                var verifyLink = BuildVerificationLink(frontendUrl, user.Email ?? "", false);
                 await SendVerificationEmailAsync(smtpOptions.Value, user.Email ?? "", user.UserName ?? "", verificationCode, verifyLink, null);
             }
             catch (Exception ex)
@@ -439,14 +491,14 @@ public class Program
 
             try
             {
-                var verifyLink = BuildVerificationLink(frontendUrl, user.Email ?? "");
+                var verifyLink = BuildVerificationLink(frontendUrl, user.Email ?? "", true);
                 await SendVerificationEmailAsync(
                     smtpOptions.Value,
                     user.Email ?? "",
                     $"{firstName} {lastName}".Trim(),
                     verificationCode,
                     verifyLink,
-                    tempPassword);
+                    null);
             }
             catch (Exception ex)
             {
@@ -564,12 +616,13 @@ public class Program
         return CryptographicOperations.FixedTimeEquals(left, right);
     }
 
-    private static string BuildVerificationLink(string baseUrl, string email)
+    private static string BuildVerificationLink(string baseUrl, string email, bool setup)
     {
         var trimmed = (baseUrl ?? "").Trim().TrimEnd('/');
         if (string.IsNullOrWhiteSpace(trimmed))
             trimmed = "http://localhost:5173";
-        return $"{trimmed}/verify-email?email={Uri.EscapeDataString(email)}";
+        var setupParam = setup ? "&setup=1" : "";
+        return $"{trimmed}/verify-email?email={Uri.EscapeDataString(email)}{setupParam}";
     }
 
     private static string GenerateTemporaryPassword()
@@ -671,6 +724,7 @@ public class LoginRequest
 }
 
 public record VerifyEmailRequest(string email, string code);
+public record VerifyEmailSetPasswordRequest(string email, string code, string newPassword);
 public record ResendVerificationRequest(string email);
 public record UpdateUserRoleRequest(string roleName);
 public class CreateUserRequest

@@ -79,6 +79,44 @@
   transition: all 0.2s;
 }
 
+.password-field {
+  position: relative;
+}
+
+.password-field .form-input {
+  padding-right: 46px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #78716c;
+  cursor: pointer;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  transition: color 0.2s, box-shadow 0.2s;
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.password-toggle:hover {
+  color: #1c1917;
+}
+
+.password-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.18);
+}
+
 .form-input:focus {
   border-color: #059669;
   box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
