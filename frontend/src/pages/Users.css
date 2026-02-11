@@ -171,7 +171,7 @@
 
 .users-row {
   display: grid;
-  grid-template-columns: 2.2fr 1fr 1fr 1fr 0.7fr;
+  grid-template-columns: 2.2fr 1fr 1fr 0.7fr;
   align-items: center;
   padding: 14px 20px;
   border-bottom: 1px solid #f3f4f6;
@@ -301,6 +301,12 @@
   height: 16px;
 }
 
+.icon-image {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
 .users-row-empty {
   grid-template-columns: 1fr;
   text-align: center;
@@ -313,7 +319,7 @@
   }
 
   .users-row {
-    grid-template-columns: 2fr 1fr 1fr 1fr 0.8fr;
+    grid-template-columns: 2fr 1fr 1fr 0.8fr;
   }
 }
 
@@ -333,8 +339,5 @@
     gap: 8px;
   }
 
-  .users-row span:nth-child(4),
-  .users-row div:nth-child(4) {
-    display: none;
-  }
+  
 }

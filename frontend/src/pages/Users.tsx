@@ -1,11 +1,16 @@
 import React from "react";
 import api from "../lib/api";
+import editIcon from "../assets/icons/edit.svg";
+import deleteIcon from "../assets/icons/delete.svg";
 import "./Users.css";
 
 type UserRecord = {
   id: number;
   email: string | null;
   username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  displayName: string | null;
   isActive: boolean;
   emailConfirmed: boolean;
   roleName: string | null;
@@ -83,7 +88,7 @@ export default function Users() {
   const filteredUsers = React.useMemo(() => {
     const term = search.trim().toLowerCase();
     return users.filter((user) => {
-      const name = user.username ?? "";
+      const name = user.displayName ?? user.username ?? "";
       const email = user.email ?? "";
       const role = user.roleName ?? "Unknown";
       if (term) {
@@ -184,7 +189,6 @@ export default function Users() {
             <span>User</span>
             <span>Role</span>
             <span>Status</span>
-            <span>Last Active</span>
             <span>Actions</span>
           </div>
           {isLoading ? (
@@ -197,9 +201,13 @@ export default function Users() {
             filteredUsers.map((user) => (
               <div className="users-row" key={user.id}>
                 <div className="user-cell">
-                  <div className="user-avatar">{getInitials(user.username, user.email)}</div>
+                  <div className="user-avatar">
+                    {getInitials(user.displayName ?? user.username, user.email)}
+                  </div>
                   <div>
-                    <div className="user-name">{user.username ?? "Unknown User"}</div>
+                    <div className="user-name">
+                      {user.displayName ?? user.username ?? "Unknown User"}
+                    </div>
                     <div className="user-email">{user.email ?? "No email"}</div>
                   </div>
                 </div>
@@ -212,39 +220,12 @@ export default function Users() {
                   <span className={`status-dot ${user.isActive ? "active" : "inactive"}`} />
                   {user.isActive ? "Active" : "Inactive"}
                 </div>
-                <div className="last-active">-</div>
                 <div className="action-cell">
                   <button className="icon-button" aria-label="Edit user">
-                    <svg viewBox="0 0 24 24">
-                      <path
-                        d="M4 20h4l10-10-4-4L4 16v4z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M14 6l4 4"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <img src={editIcon} alt="" className="icon-image" />
                   </button>
                   <button className="icon-button" aria-label="Delete user">
-                    <svg viewBox="0 0 24 24">
-                      <path
-                        d="M6 7h12M9 7V5h6v2M9 10v6M15 10v6M7 7l1 12h8l1-12"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                    <img src={deleteIcon} alt="" className="icon-image" />
                   </button>
                 </div>
               </div>

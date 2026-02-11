@@ -57,12 +57,9 @@ export default function Registerform() {
       return;
     }
 
-    // ✅ build username from firstname + lastname
-    const username =
-      registerInfo.firstname.trim() + registerInfo.lastname.trim();
-
     const payload = {
-      username: username, // BACKEND EXPECTS THIS
+      firstname: registerInfo.firstname,
+      lastname: registerInfo.lastname,
       email: registerInfo.email,
       password: registerInfo.password,
       role: registerInfo.role,

@@ -113,20 +113,19 @@ public class Program
             var email = (req.email ?? "").Trim().ToLowerInvariant();
             var username = (req.username ?? "").Trim();
             var roleName = (req.role ?? req.roleName ?? "").Trim();
+            var firstName = (req.firstname ?? "").Trim();
+            var lastName = (req.lastname ?? "").Trim();
 
             if (string.IsNullOrWhiteSpace(username))
             {
-                var first = (req.firstname ?? "").Trim();
-                var last = (req.lastname ?? "").Trim();
-                username = $"{first} {last}".Trim();
+                username = email;
             }
 
             if (string.IsNullOrWhiteSpace(email) ||
-                string.IsNullOrWhiteSpace(username) ||
                 string.IsNullOrWhiteSpace(req.password) ||
                 string.IsNullOrWhiteSpace(roleName))
             {
-                return Results.BadRequest(new { message = "Email, username, password, and role are required." });
+                return Results.BadRequest(new { message = "Email, password, and role are required." });
             }
 
             var existing = await userManager.FindByEmailAsync(email);
@@ -146,6 +145,8 @@ public class Program
             {
                 Email = email,
                 UserName = username,
+                FirstName = firstName,
+                LastName = lastName,
                 IsActive = false,
                 EmailConfirmed = false,
                 EmailVerificationCode = verificationCode,
@@ -347,11 +348,21 @@ public class Program
             {
                 rolesByUser.TryGetValue(u.Id, out var userRoleNames);
                 var roleName = userRoleNames?.FirstOrDefault() ?? "Unknown";
+                var firstName = (u.FirstName ?? "").Trim();
+                var lastName = (u.LastName ?? "").Trim();
+                var displayName = $"{firstName} {lastName}".Trim();
+                if (string.IsNullOrWhiteSpace(displayName))
+                {
+                    displayName = u.UserName ?? u.Email ?? "Unknown";
+                }
                 return new
                 {
                     id = u.Id,
                     email = u.Email,
                     username = u.UserName,
+                    firstName,
+                    lastName,
+                    displayName,
                     isActive = u.IsActive,
                     emailConfirmed = u.EmailConfirmed,
                     roleName
@@ -475,6 +486,10 @@ public class AppDbContext : IdentityDbContext<AppUser, IdentityRole<int>, int>
 public class AppUser : IdentityUser<int>
 {
     public bool IsActive { get; set; } = false;
+    [MaxLength(100)]
+    public string? FirstName { get; set; }
+    [MaxLength(100)]
+    public string? LastName { get; set; }
     [MaxLength(12)]
     public string? EmailVerificationCode { get; set; }
     public DateTime? EmailVerificationExpiresUtc { get; set; }
