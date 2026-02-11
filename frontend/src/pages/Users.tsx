@@ -1,54 +1,113 @@
+import React from "react";
+import api from "../lib/api";
 import "./Users.css";
 
-const users = [
-  {
-    initials: "JD",
-    name: "John Doe",
-    email: "john.doe@company.com",
-    role: "Admin",
-    status: "Active",
-    lastActive: "Just now",
-    roleTone: "admin",
-  },
-  {
-    initials: "SM",
-    name: "Sarah Miller",
-    email: "sarah.miller@company.com",
-    role: "Manager",
-    status: "Active",
-    lastActive: "5 mins ago",
-    roleTone: "manager",
-  },
-  {
-    initials: "MJ",
-    name: "Mike Johnson",
-    email: "mike.johnson@company.com",
-    role: "Operator",
-    status: "Active",
-    lastActive: "1 hour ago",
-    roleTone: "operator",
-  },
-  {
-    initials: "EW",
-    name: "Emily Wilson",
-    email: "emily.wilson@company.com",
-    role: "Viewer",
-    status: "Inactive",
-    lastActive: "3 days ago",
-    roleTone: "viewer",
-  },
-  {
-    initials: "RB",
-    name: "Robert Brown",
-    email: "robert.brown@company.com",
-    role: "Admin",
-    status: "Active",
-    lastActive: "2 hours ago",
-    roleTone: "admin",
-  },
+type UserRecord = {
+  id: number;
+  email: string | null;
+  username: string | null;
+  isActive: boolean;
+  emailConfirmed: boolean;
+  roleName: string | null;
+};
+
+const roleOptions = [
+  "All Roles",
+  "Administrator",
+  "Yard Manager",
+  "Yard Jockey",
+  "Gate Security",
+  "View Only",
 ];
 
+function getInitials(name?: string | null, email?: string | null) {
+  const source = (name ?? "").trim() || (email ?? "").trim();
+  if (!source) return "NA";
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+function getRoleTone(roleName?: string | null) {
+  switch ((roleName ?? "").trim()) {
+    case "Administrator":
+      return "role-administrator";
+    case "Yard Manager":
+      return "role-manager";
+    case "Yard Jockey":
+      return "role-jockey";
+    case "Gate Security":
+      return "role-gate";
+    case "View Only":
+      return "role-view";
+    default:
+      return "role-unknown";
+  }
+}
+
 export default function Users() {
+  const [users, setUsers] = React.useState<UserRecord[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [search, setSearch] = React.useState("");
+  const [roleFilter, setRoleFilter] = React.useState("All Roles");
+  const [statusFilter, setStatusFilter] = React.useState("All Status");
+
+  React.useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+    api
+      .get("/users")
+      .then((response) => {
+        if (!active) return;
+        const data = Array.isArray(response.data) ? response.data : [];
+        setUsers(data);
+        setError(null);
+      })
+      .catch(() => {
+        if (!active) return;
+        setError("Failed to load users.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const filteredUsers = React.useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return users.filter((user) => {
+      const name = user.username ?? "";
+      const email = user.email ?? "";
+      const role = user.roleName ?? "Unknown";
+      if (term) {
+        const haystack = `${name} ${email} ${role}`.toLowerCase();
+        if (!haystack.includes(term)) return false;
+      }
+      if (roleFilter !== "All Roles" && role !== roleFilter) {
+        return false;
+      }
+      if (statusFilter !== "All Status") {
+        const isActive = user.isActive;
+        if (statusFilter === "Active" && !isActive) return false;
+        if (statusFilter === "Inactive" && isActive) return false;
+      }
+      return true;
+    });
+  }, [users, search, roleFilter, statusFilter]);
+
+  const totalUsers = users.length;
+  const activeUsers = users.filter((user) => user.isActive).length;
+  const adminUsers = users.filter((user) => user.roleName === "Administrator").length;
+  const pendingVerification = users.filter((user) => !user.emailConfirmed).length;
+  const activeRate = totalUsers ? Math.round((activeUsers / totalUsers) * 1000) / 10 : 0;
+
   return (
     <div className="users-page">
       <header className="users-header">
@@ -65,23 +124,23 @@ export default function Users() {
       <section className="users-stats">
         <article className="stat-card">
           <p className="stat-label">Total Users</p>
-          <p className="stat-value">24</p>
-          <p className="stat-meta positive">+3 this month</p>
+          <p className="stat-value">{totalUsers}</p>
+          <p className="stat-meta">All registered users</p>
         </article>
         <article className="stat-card">
           <p className="stat-label">Active Users</p>
-          <p className="stat-value">21</p>
-          <p className="stat-meta positive">87.5% active</p>
+          <p className="stat-value">{activeUsers}</p>
+          <p className="stat-meta positive">{activeRate}% active</p>
         </article>
         <article className="stat-card">
           <p className="stat-label">Administrators</p>
-          <p className="stat-value">3</p>
+          <p className="stat-value">{adminUsers}</p>
           <p className="stat-meta">Full access</p>
         </article>
         <article className="stat-card">
-          <p className="stat-label">Pending Invites</p>
-          <p className="stat-value">2</p>
-          <p className="stat-meta">Awaiting response</p>
+          <p className="stat-label">Pending Verification</p>
+          <p className="stat-value">{pendingVerification}</p>
+          <p className="stat-meta">Email not confirmed</p>
         </article>
       </section>
 
@@ -100,16 +159,19 @@ export default function Users() {
                   />
                 </svg>
               </span>
-              <input type="text" placeholder="Search users..." />
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
             </div>
-            <select>
-              <option>All Roles</option>
-              <option>Admin</option>
-              <option>Manager</option>
-              <option>Operator</option>
-              <option>Viewer</option>
+            <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
+              {roleOptions.map((role) => (
+                <option key={role}>{role}</option>
+              ))}
             </select>
-            <select>
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
               <option>All Status</option>
               <option>Active</option>
               <option>Inactive</option>
@@ -125,59 +187,69 @@ export default function Users() {
             <span>Last Active</span>
             <span>Actions</span>
           </div>
-          {users.map((user) => (
-            <div className="users-row" key={user.email}>
-              <div className="user-cell">
-                <div className="user-avatar">{user.initials}</div>
+          {isLoading ? (
+            <div className="users-row users-row-empty">Loading users...</div>
+          ) : error ? (
+            <div className="users-row users-row-empty">{error}</div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="users-row users-row-empty">No users found.</div>
+          ) : (
+            filteredUsers.map((user) => (
+              <div className="users-row" key={user.id}>
+                <div className="user-cell">
+                  <div className="user-avatar">{getInitials(user.username, user.email)}</div>
+                  <div>
+                    <div className="user-name">{user.username ?? "Unknown User"}</div>
+                    <div className="user-email">{user.email ?? "No email"}</div>
+                  </div>
+                </div>
                 <div>
-                  <div className="user-name">{user.name}</div>
-                  <div className="user-email">{user.email}</div>
+                  <span className={`role-pill ${getRoleTone(user.roleName)}`}>
+                    {user.roleName ?? "Unknown"}
+                  </span>
+                </div>
+                <div className="status-cell">
+                  <span className={`status-dot ${user.isActive ? "active" : "inactive"}`} />
+                  {user.isActive ? "Active" : "Inactive"}
+                </div>
+                <div className="last-active">-</div>
+                <div className="action-cell">
+                  <button className="icon-button" aria-label="Edit user">
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M4 20h4l10-10-4-4L4 16v4z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M14 6l4 4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  <button className="icon-button" aria-label="Delete user">
+                    <svg viewBox="0 0 24 24">
+                      <path
+                        d="M6 7h12M9 7V5h6v2M9 10v6M15 10v6M7 7l1 12h8l1-12"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
                 </div>
               </div>
-              <div>
-                <span className={`role-pill ${user.roleTone}`}>{user.role}</span>
-              </div>
-              <div className="status-cell">
-                <span className={`status-dot ${user.status.toLowerCase()}`} />
-                {user.status}
-              </div>
-              <div className="last-active">{user.lastActive}</div>
-              <div className="action-cell">
-                <button className="icon-button" aria-label="Edit user">
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M4 20h4l10-10-4-4L4 16v4z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M14 6l4 4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-                <button className="icon-button" aria-label="Delete user">
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M6 7h12M9 7V5h6v2M9 10v6M15 10v6M7 7l1 12h8l1-12"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
     </div>

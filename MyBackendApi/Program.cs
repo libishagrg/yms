@@ -328,6 +328,39 @@ public class Program
             return Results.Ok(roles);
         });
 
+        app.MapGet("/users", async (AppDbContext db) =>
+        {
+            var users = await db.Users.AsNoTracking().ToListAsync();
+            var roles = await db.Roles.AsNoTracking().ToListAsync();
+            var userRoles = await db.UserRoles.AsNoTracking().ToListAsync();
+
+            var roleById = roles.ToDictionary(r => r.Id, r => r.Name ?? "Unknown");
+            var rolesByUser = userRoles
+                .GroupBy(ur => ur.UserId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(ur => roleById.TryGetValue(ur.RoleId, out var name) ? name : "Unknown")
+                          .Distinct()
+                          .ToList());
+
+            var result = users.Select(u =>
+            {
+                rolesByUser.TryGetValue(u.Id, out var userRoleNames);
+                var roleName = userRoleNames?.FirstOrDefault() ?? "Unknown";
+                return new
+                {
+                    id = u.Id,
+                    email = u.Email,
+                    username = u.UserName,
+                    isActive = u.IsActive,
+                    emailConfirmed = u.EmailConfirmed,
+                    roleName
+                };
+            });
+
+            return Results.Ok(result);
+        });
+
         app.MapGet("/trial", async (UserManager<AppUser> userManager) =>
         {
             var users = await userManager.Users
