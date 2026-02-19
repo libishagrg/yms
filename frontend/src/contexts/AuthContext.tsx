@@ -57,8 +57,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Avoid duplicate /me bootstrap call triggered by React StrictMode in dev.
     if (hasBootstrappedRef.current) return;
     hasBootstrappedRef.current = true;
+
+    // Skip bootstrap auth check on public registration/verification pages.
+    // This avoids noisy 401 logs while users are creating/verifying accounts.
+    const path = window.location.pathname.toLowerCase();
+    if (path === "/register" || path.startsWith("/verify-email")) {
+      setGuest();
+      return;
+    }
+
     refresh();
-  }, [refresh]);
+  }, [refresh, setGuest]);
 
   const value = React.useMemo(
     () => ({ status, user, refresh, setAuthenticated, setGuest }),

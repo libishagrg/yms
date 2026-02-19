@@ -75,7 +75,12 @@ export default function Registerform() {
       // ✅ go to verify email after success
       navigate(`/verify-email?email=${encodeURIComponent(registerInfo.email)}`);
     } catch (error: any) {
-      const msg = error?.response?.data?.message || "Registration failed";
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.detail ||
+        error?.response?.data?.title ||
+        error?.message ||
+        "Registration failed";
       console.error("Register Error:", msg);
       alert(msg);
     }
