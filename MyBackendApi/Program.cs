@@ -18,6 +18,15 @@ using System.Text.RegularExpressions;
 
 public class Program
 {
+    private const string AuthenticatedUserPolicy = "AuthenticatedUser";
+    private const string AdminOnlyPolicy = "AdminOnly";
+
+    private static readonly HashSet<string> PublicSignupRoleKeys = new(StringComparer.Ordinal)
+    {
+        NormalizeRoleKey("Administrator"),
+        NormalizeRoleKey("Yard Manager")
+    };
+
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
@@ -75,7 +84,13 @@ public class Program
             };
         });
 
-        builder.Services.AddAuthorization();
+        builder.Services.AddAuthorization(options =>
+        {
+            options.AddPolicy(AuthenticatedUserPolicy, policy =>
+                policy.RequireAuthenticatedUser());
+            options.AddPolicy(AdminOnlyPolicy, policy =>
+                policy.RequireRole("Administrator"));
+        });
 
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
@@ -134,6 +149,13 @@ public class Program
                 return Results.Conflict(new { message = "Email already registered." });
 
             var roleKey = NormalizeRoleKey(roleName);
+            if (!PublicSignupRoleKeys.Contains(roleKey))
+            {
+                return Results.Json(
+                    new { message = "Self-registration is only allowed for Administrator and Yard Manager roles." },
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+
             var roles = await roleManager.Roles.AsNoTracking().ToListAsync();
             var role = roles.FirstOrDefault(r => NormalizeRoleKey(r.Name ?? "") == roleKey);
 
@@ -361,7 +383,7 @@ public class Program
         {
             await signInManager.SignOutAsync();
             return Results.Ok(new { message = "Logged out" });
-        });
+        }).RequireAuthorization(AuthenticatedUserPolicy);
 
         app.MapGet("/me", async (UserManager<AppUser> userManager, ClaimsPrincipal principal) =>
         {
@@ -377,7 +399,7 @@ public class Program
                 username = user.UserName,
                 roleName = roles.FirstOrDefault() ?? "Unknown"
             });
-        }).RequireAuthorization();
+        }).RequireAuthorization(AuthenticatedUserPolicy);
 
         app.MapGet("/roles", async (RoleManager<IdentityRole<int>> roleManager) =>
         {
@@ -386,7 +408,7 @@ public class Program
                 .ToListAsync();
 
             return Results.Ok(roles);
-        });
+        }).RequireAuthorization(AdminOnlyPolicy);
 
         app.MapGet("/users", async (AppDbContext db) =>
         {
@@ -429,7 +451,7 @@ public class Program
             });
 
             return Results.Ok(result);
-        });
+        }).RequireAuthorization(AdminOnlyPolicy);
 
         app.MapPost("/users", async ([FromBody] CreateUserRequest req,
             UserManager<AppUser> userManager,
@@ -518,7 +540,7 @@ public class Program
                 emailConfirmed = user.EmailConfirmed,
                 roleName = role.Name ?? "Unknown"
             });
-        });
+        }).RequireAuthorization(AdminOnlyPolicy);
 
         app.MapPatch("/users/{id:int}/toggle-active", async (int id, AppDbContext db) =>
         {
@@ -530,7 +552,7 @@ public class Program
             await db.SaveChangesAsync();
 
             return Results.Ok(new { id = user.Id, isActive = user.IsActive });
-        });
+        }).RequireAuthorization(AdminOnlyPolicy);
 
         app.MapPut("/users/{id:int}/role", async (int id, [FromBody] UpdateUserRoleRequest req,
             UserManager<AppUser> userManager,
@@ -566,7 +588,7 @@ public class Program
             }
 
             return Results.Ok(new { id = user.Id, roleName = role.Name ?? req.roleName });
-        });
+        }).RequireAuthorization(AdminOnlyPolicy);
 
         app.MapGet("/trial", async (UserManager<AppUser> userManager) =>
         {
@@ -575,7 +597,7 @@ public class Program
                 .ToListAsync();
 
             return Results.Ok(users);
-        });
+        }).RequireAuthorization(AdminOnlyPolicy);
 
         app.Run();
     }

@@ -5,6 +5,7 @@ import VerifyEmail from "./components/verify/VerifyEmail";
 import AppShell from "./components/layout/AppShell";
 import RequireAuth from "./components/auth/RequireAuth";
 import RedirectIfAuth from "./components/auth/RedirectIfAuth";
+import RequireRole from "./components/auth/RequireRole";
 import Dashboard from "./pages/Dashboard";
 import YardOverview from "./pages/YardOverview";
 import VehiclesTrailers from "./pages/VehiclesTrailers";
@@ -13,6 +14,7 @@ import Tasks from "./pages/Tasks";
 import Reports from "./pages/Reports";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
+import { routeAccessMap } from "./auth/rbac";
 
 export default function App() {
   return (
@@ -25,14 +27,30 @@ export default function App() {
       </Route>
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
-          <Route path="/home" element={<Dashboard />} />
-          <Route path="/yard-overview" element={<YardOverview />} />
-          <Route path="/vehicles" element={<VehiclesTrailers />} />
-          <Route path="/gate-activity" element={<GateActivity />} />
-          <Route path="/tasks" element={<Tasks />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/users" element={<Users />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route element={<RequireRole allowedRoles={routeAccessMap["/home"]} />}>
+            <Route path="/home" element={<Dashboard />} />
+          </Route>
+          <Route element={<RequireRole allowedRoles={routeAccessMap["/yard-overview"]} />}>
+            <Route path="/yard-overview" element={<YardOverview />} />
+          </Route>
+          <Route element={<RequireRole allowedRoles={routeAccessMap["/vehicles"]} />}>
+            <Route path="/vehicles" element={<VehiclesTrailers />} />
+          </Route>
+          <Route element={<RequireRole allowedRoles={routeAccessMap["/gate-activity"]} />}>
+            <Route path="/gate-activity" element={<GateActivity />} />
+          </Route>
+          <Route element={<RequireRole allowedRoles={routeAccessMap["/tasks"]} />}>
+            <Route path="/tasks" element={<Tasks />} />
+          </Route>
+          <Route element={<RequireRole allowedRoles={routeAccessMap["/reports"]} />}>
+            <Route path="/reports" element={<Reports />} />
+          </Route>
+          <Route element={<RequireRole allowedRoles={routeAccessMap["/users"]} />}>
+            <Route path="/users" element={<Users />} />
+          </Route>
+          <Route element={<RequireRole allowedRoles={routeAccessMap["/settings"]} />}>
+            <Route path="/settings" element={<Settings />} />
+          </Route>
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/home" replace />} />

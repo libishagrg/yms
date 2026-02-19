@@ -1,12 +1,16 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../../../lib/api";
+import { getDefaultRouteForRole } from "../../../auth/rbac";
 import { useAuth } from "../../../contexts/AuthContext";
+import api from "../../../lib/api";
 
 export default function Loginform() {
   const navigate = useNavigate();
   const { setAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = React.useState(false);
+  const [authError, setAuthError] = React.useState<string | null>(null);
+  const [showVerifyPrompt, setShowVerifyPrompt] = React.useState(false);
+  const [verifyEmail, setVerifyEmail] = React.useState("");
 
   const [loginInfo, setLoginInfo] = React.useState<{
     email: string;
@@ -17,9 +21,10 @@ export default function Loginform() {
     password: "",
     rememberMe: false,
   });
-  const trimmedEmail = loginInfo.email.trim();
-  const verifyLink = trimmedEmail
-    ? `/verify-email?email=${encodeURIComponent(trimmedEmail)}`
+
+  const verifyTargetEmail = verifyEmail.trim() || loginInfo.email.trim();
+  const verifyLink = verifyTargetEmail
+    ? `/verify-email?email=${encodeURIComponent(verifyTargetEmail)}`
     : "/verify-email";
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -28,6 +33,12 @@ export default function Loginform() {
       ...prevInfo,
       [name]: type === "checkbox" ? checked : value,
     }));
+
+    if (name === "email") {
+      setShowVerifyPrompt(false);
+      setVerifyEmail("");
+    }
+    setAuthError(null);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -40,18 +51,26 @@ export default function Loginform() {
         rememberMe: loginInfo.rememberMe,
       });
 
+      setAuthError(null);
+      setShowVerifyPrompt(false);
+      setVerifyEmail("");
       setAuthenticated(response.data);
-
-      // ✅ go to home
-      navigate("/home");
+      navigate(getDefaultRouteForRole(response.data?.roleName), { replace: true });
     } catch (error: any) {
       const data = error?.response?.data;
-      const msg = data?.message || "Login failed";
-      if (data?.needsVerification && data?.email) {
-        navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
+      const message = data?.message || "Login failed";
+
+      if (data?.needsVerification) {
+        const unverifiedEmail = (data?.email ?? loginInfo.email ?? "").trim();
+        setAuthError(message);
+        setShowVerifyPrompt(true);
+        setVerifyEmail(unverifiedEmail);
         return;
       }
-      alert(msg);
+
+      setAuthError(message);
+      setShowVerifyPrompt(false);
+      setVerifyEmail("");
       console.error("Login Error:", error);
     }
   }
@@ -123,18 +142,25 @@ export default function Loginform() {
             <label htmlFor="remember">Keep me signed in</label>
           </div>
 
-          {/* optional: make this a <Link> later */}
           <a href="#" className="forgot-link">Forgot password?</a>
         </div>
 
         <button type="submit" className="btn-primary">Sign In</button>
       </form>
 
-      <div className="verify-inline">
-        <p className="register-link verify-link">
-          Registered but didn't verify? <Link to={verifyLink}>Verify your email</Link>
-        </p>
-      </div>
+      {authError ? (
+        <div className={`auth-feedback ${showVerifyPrompt ? "warning" : "error"}`} role="alert">
+          {authError}
+        </div>
+      ) : null}
+
+      {showVerifyPrompt ? (
+        <div className="verify-inline">
+          <p className="register-link verify-link">
+            Registered but didn't verify? <Link to={verifyLink}>Verify your email</Link>
+          </p>
+        </div>
+      ) : null}
     </>
   );
 }

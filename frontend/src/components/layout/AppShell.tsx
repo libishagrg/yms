@@ -1,4 +1,15 @@
+import { useEffect, useMemo, type ReactNode } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import {
+  canRoleAccessMenuItem,
+  canRoleAccessRoute,
+  getDefaultRouteForRole,
+  isAppRoutePath,
+  type AppRoutePath,
+  type MenuItemId,
+} from "../../auth/rbac";
+import { useAuth } from "../../contexts/AuthContext";
+import api from "../../lib/api";
 import { Sidebar } from "../sidebar/Sidebar";
 import {
   IconChart,
@@ -11,10 +22,19 @@ import {
   IconUsers,
 } from "../sidebar/icons";
 import "./AppShell.css";
-import { useAuth } from "../../contexts/AuthContext";
-import api from "../../lib/api";
 
-const menuSections = [
+type MenuItem = {
+  id: MenuItemId;
+  label: string;
+  icon: ReactNode;
+};
+
+type MenuSection = {
+  title: string;
+  items: MenuItem[];
+};
+
+const menuSections: MenuSection[] = [
   {
     title: "Overview",
     items: [
@@ -43,7 +63,7 @@ const menuSections = [
   },
 ];
 
-const routeByItemId: Record<string, string> = {
+const routeByItemId: Record<MenuItemId, AppRoutePath> = {
   home: "/home",
   yard: "/yard-overview",
   vehicles: "/vehicles",
@@ -58,12 +78,35 @@ export default function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, setGuest } = useAuth();
+  const roleName = user?.roleName;
+
+  const visibleMenuSections = useMemo(
+    () =>
+      menuSections
+        .map((section) => ({
+          ...section,
+          items: section.items.filter((item) => canRoleAccessMenuItem(roleName, item.id)),
+        }))
+        .filter((section) => section.items.length > 0),
+    [roleName],
+  );
+
+  const itemByRoute = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(routeByItemId).map(([itemId, route]) => [route, itemId]),
+      ) as Partial<Record<AppRoutePath, MenuItemId>>,
+    [],
+  );
 
   const handleSidebarItemClick = (itemId: string) => {
-    const target = routeByItemId[itemId];
-    if (target) {
-      navigate(target);
-    }
+    const menuItemId = itemId as MenuItemId;
+    if (!canRoleAccessMenuItem(roleName, menuItemId)) return;
+
+    const targetRoute = routeByItemId[menuItemId];
+    if (!targetRoute || !canRoleAccessRoute(roleName, targetRoute)) return;
+
+    navigate(targetRoute);
   };
 
   const handleLogout = async () => {
@@ -75,10 +118,20 @@ export default function AppShell() {
     }
   };
 
-  const itemByRoute = Object.fromEntries(
-    Object.entries(routeByItemId).map(([key, value]) => [value, key]),
-  );
-  const activeItemId = itemByRoute[location.pathname] ?? "home";
+  useEffect(() => {
+    if (!isAppRoutePath(location.pathname)) return;
+    if (canRoleAccessRoute(roleName, location.pathname)) return;
+
+    const fallbackRoute = getDefaultRouteForRole(roleName);
+    if (location.pathname !== fallbackRoute) {
+      navigate(fallbackRoute, { replace: true });
+    }
+  }, [location.pathname, navigate, roleName]);
+
+  const firstVisibleItemId = visibleMenuSections[0]?.items[0]?.id ?? "home";
+  const activeItemId = isAppRoutePath(location.pathname)
+    ? (itemByRoute[location.pathname] ?? firstVisibleItemId)
+    : firstVisibleItemId;
   const userName = user?.username || user?.email || "User";
   const userInitials = userName
     .split(" ")
@@ -96,7 +149,7 @@ export default function AppShell() {
     <div className="app-shell">
       <Sidebar
         logo="Ytrac"
-        menuSections={menuSections}
+        menuSections={visibleMenuSections}
         userProfile={userProfile}
         onItemClick={handleSidebarItemClick}
         onLogout={handleLogout}
