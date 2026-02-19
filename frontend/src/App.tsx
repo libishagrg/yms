@@ -28,28 +28,28 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route element={<RequireRole allowedRoles={routeAccessMap["/home"]} />}>
-            <Route path="/home" element={<Dashboard />} />
+            <Route path="home" element={<Dashboard />} />
           </Route>
           <Route element={<RequireRole allowedRoles={routeAccessMap["/yard-overview"]} />}>
-            <Route path="/yard-overview" element={<YardOverview />} />
+            <Route path="yard-overview" element={<YardOverview />} />
           </Route>
           <Route element={<RequireRole allowedRoles={routeAccessMap["/vehicles"]} />}>
-            <Route path="/vehicles" element={<VehiclesTrailers />} />
+            <Route path="vehicles" element={<VehiclesTrailers />} />
           </Route>
           <Route element={<RequireRole allowedRoles={routeAccessMap["/gate-activity"]} />}>
-            <Route path="/gate-activity" element={<GateActivity />} />
+            <Route path="gate-activity" element={<GateActivity />} />
           </Route>
           <Route element={<RequireRole allowedRoles={routeAccessMap["/tasks"]} />}>
-            <Route path="/tasks" element={<Tasks />} />
+            <Route path="tasks" element={<Tasks />} />
           </Route>
           <Route element={<RequireRole allowedRoles={routeAccessMap["/reports"]} />}>
-            <Route path="/reports" element={<Reports />} />
+            <Route path="reports" element={<Reports />} />
           </Route>
           <Route element={<RequireRole allowedRoles={routeAccessMap["/users"]} />}>
-            <Route path="/users" element={<Users />} />
+            <Route path="users" element={<Users />} />
           </Route>
           <Route element={<RequireRole allowedRoles={routeAccessMap["/settings"]} />}>
-            <Route path="/settings" element={<Settings />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
         </Route>
       </Route>
