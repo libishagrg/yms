@@ -350,10 +350,6 @@ public class Program
                 return Results.Json(new { message = "Email not found" },
                     statusCode: StatusCodes.Status404NotFound);
 
-            if (!user.IsActive)
-                return Results.Json(new { message = "Account is disabled." },
-                    statusCode: StatusCodes.Status403Forbidden);
-
             if (!user.EmailConfirmed)
                 return Results.Json(new
                 {
@@ -361,6 +357,10 @@ public class Program
                     needsVerification = true,
                     email = user.Email
                 }, statusCode: StatusCodes.Status403Forbidden);
+
+            if (!user.IsActive)
+                return Results.Json(new { message = "Account is disabled." },
+                    statusCode: StatusCodes.Status403Forbidden);
 
             var result = await signInManager.PasswordSignInAsync(user, req.password ?? "", req.rememberMe, false);
             if (!result.Succeeded)
