@@ -24,22 +24,7 @@ const AuthContext = React.createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = React.useState<AuthStatus>("loading");
   const [user, setUser] = React.useState<AuthUser | null>(null);
-
-  const refresh = React.useCallback(async () => {
-    setStatus("loading");
-    try {
-      const response = await api.get("/me");
-      setUser(response.data);
-      setStatus("authenticated");
-    } catch {
-      setUser(null);
-      setStatus("guest");
-    }
-  }, []);
-
-  React.useEffect(() => {
-    refresh();
-  }, [refresh]);
+  const hasBootstrappedRef = React.useRef(false);
 
   const setAuthenticated = React.useCallback((nextUser: AuthUser) => {
     setUser(nextUser);
@@ -50,6 +35,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setStatus("guest");
   }, []);
+
+  const refresh = React.useCallback(async () => {
+    setStatus("loading");
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      controller.abort();
+    }, 4000);
+
+    try {
+      const response = await api.get("/me", { signal: controller.signal });
+      setAuthenticated(response.data);
+    } catch {
+      setGuest();
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  }, [setAuthenticated, setGuest]);
+
+  React.useEffect(() => {
+    // Avoid duplicate /me bootstrap call triggered by React StrictMode in dev.
+    if (hasBootstrappedRef.current) return;
+    hasBootstrappedRef.current = true;
+    refresh();
+  }, [refresh]);
 
   const value = React.useMemo(
     () => ({ status, user, refresh, setAuthenticated, setGuest }),
