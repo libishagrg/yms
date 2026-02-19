@@ -79,6 +79,10 @@ export default function AppShell() {
   const location = useLocation();
   const { user, setGuest } = useAuth();
   const roleName = user?.roleName;
+  const isKnownAppRoute = isAppRoutePath(location.pathname);
+  const isCurrentRouteAllowed = isKnownAppRoute
+    ? canRoleAccessRoute(roleName, location.pathname as AppRoutePath)
+    : true;
 
   const visibleMenuSections = useMemo(
     () =>
@@ -127,6 +131,10 @@ export default function AppShell() {
       navigate(fallbackRoute, { replace: true });
     }
   }, [location.pathname, navigate, roleName]);
+
+  if (isKnownAppRoute && !isCurrentRouteAllowed) {
+    return null;
+  }
 
   const firstVisibleItemId = visibleMenuSections[0]?.items[0]?.id ?? "home";
   const activeItemId = isAppRoutePath(location.pathname)

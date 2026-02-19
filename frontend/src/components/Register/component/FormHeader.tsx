@@ -1,7 +1,9 @@
+import { Link } from "react-router-dom";
+
 export default function FormHeader() {
   return (
     <div className="form-header">
-      <a href="login.html" className="back-link">
+      <Link to="/login" className="back-link">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -16,7 +18,7 @@ export default function FormHeader() {
           />
         </svg>
         Back to login
-      </a>
+      </Link>
       <h1 className="form-title">Create your account</h1>
       <p className="form-subtitle">
         Start managing your yard operations efficiently
