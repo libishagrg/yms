@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   canRoleAccessMenuItem,
@@ -86,6 +86,7 @@ export default function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, setGuest } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const roleName = user?.roleName;
   const isKnownAppRoute = isAppRoutePath(location.pathname);
   const isCurrentRouteAllowed = isKnownAppRoute
@@ -110,6 +111,13 @@ export default function AppShell() {
       ) as Partial<Record<AppRoutePath, MenuItemId>>,
     [],
   );
+  const labelByItemId = useMemo(
+    () =>
+      Object.fromEntries(
+        menuSections.flatMap((section) => section.items.map((item) => [item.id, item.label])),
+      ) as Record<MenuItemId, string>,
+    [],
+  );
 
   const handleSidebarItemClick = (itemId: string) => {
     const menuItemId = itemId as MenuItemId;
@@ -119,6 +127,7 @@ export default function AppShell() {
     if (!targetRoute || !canRoleAccessRoute(roleName, targetRoute)) return;
 
     navigate(targetRoute);
+    setIsSidebarOpen(false);
   };
 
   const handleLogout = async () => {
@@ -127,6 +136,7 @@ export default function AppShell() {
     } finally {
       setGuest();
       navigate("/login", { replace: true });
+      setIsSidebarOpen(false);
     }
   };
 
@@ -140,6 +150,21 @@ export default function AppShell() {
     }
   }, [location.pathname, navigate, roleName]);
 
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isSidebarOpen]);
+
   if (isKnownAppRoute && !isCurrentRouteAllowed) {
     return null;
   }
@@ -148,6 +173,7 @@ export default function AppShell() {
   const activeItemId = isAppRoutePath(location.pathname)
     ? (itemByRoute[location.pathname] ?? firstVisibleItemId)
     : firstVisibleItemId;
+  const activeLabel = labelByItemId[activeItemId] ?? "Dashboard";
   const userName = user?.username || user?.email || "User";
   const userInitials = userName
     .split(" ")
@@ -170,8 +196,29 @@ export default function AppShell() {
         onItemClick={handleSidebarItemClick}
         onLogout={handleLogout}
         activeItemId={activeItemId}
+        isMobileOpen={isSidebarOpen}
+        onCloseMobile={() => setIsSidebarOpen(false)}
+      />
+      <button
+        type="button"
+        className="app-overlay"
+        aria-label="Close navigation"
+        onClick={() => setIsSidebarOpen(false)}
       />
       <main className="app-content">
+        <header className="app-mobile-bar">
+          <button
+            type="button"
+            className="app-mobile-menu"
+            aria-label="Open navigation"
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+          <p>{activeLabel}</p>
+        </header>
         <Outlet />
       </main>
     </div>

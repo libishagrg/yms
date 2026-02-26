@@ -27,6 +27,8 @@ interface SidebarProps {
   onItemClick?: (itemId: string) => void;
   onLogout?: () => void;
   activeItemId?: string;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -36,6 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onItemClick,
   onLogout,
   activeItemId,
+  isMobileOpen = false,
+  onCloseMobile,
 }) => {
   const [activeItem, setActiveItem] = useState<string>(
     activeItemId || menuSections[0]?.items[0]?.id || ""
@@ -53,9 +57,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isMobileOpen ? "mobile-open" : ""}`}>
       <div className="sidebar-logo">
         <h1>{logo}</h1>
+        <button
+          type="button"
+          className="sidebar-close-mobile"
+          aria-label="Close navigation"
+          onClick={onCloseMobile}
+        >
+          x
+        </button>
       </div>
 
       <nav className="sidebar-nav">
