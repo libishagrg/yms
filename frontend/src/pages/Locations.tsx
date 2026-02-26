@@ -306,7 +306,7 @@ export default function Locations() {
       <header className="ops-header">
         <div>
           <h1 className="ops-title">Locations</h1>
-          <p className="ops-subtitle">Manage Area > Yard > Zone > Dock hierarchy with add, edit, and delete.</p>
+          <p className="ops-subtitle">Manage Area - Yard - Zone - Dock hierarchy with add, edit, and delete.</p>
         </div>
         <div className="ops-header-actions">
           <button type="button" className="ops-action-btn ops-action-btn-primary" onClick={openAddModal}>
