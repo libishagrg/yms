@@ -1,32 +1,34 @@
 import "./OperationsUi.css";
 
-const kpiCards = [
-  { label: "Live Units In Yard", value: "186", delta: "+14 today", tone: "good" },
-  { label: "Gate Throughput", value: "62 / hr", delta: "-4 vs plan", tone: "warn" },
-  { label: "Avg Turnaround", value: "42m", delta: "-6m improved", tone: "good" },
-  { label: "Dock Utilization", value: "81%", delta: "+3% peak hour", tone: "neutral" },
+const zonePulse = [
+  { zone: "Zone A", occupancy: 72, queue: 4, target: "Stable" },
+  { zone: "Zone B", occupancy: 91, queue: 12, target: "Over target" },
+  { zone: "Zone C", occupancy: 64, queue: 3, target: "Stable" },
+  { zone: "Zone D", occupancy: 83, queue: 8, target: "Watch" },
 ] as const;
 
-const dockLanes = [
-  { label: "Inbound Lanes", value: 84 },
-  { label: "Outbound Lanes", value: 73 },
-  { label: "Inspection Bays", value: 56 },
-  { label: "Cross-Dock", value: 91 },
-];
-
-const activeAlerts = [
-  { title: "Zone B congestion", detail: "14 units queued near Dock B-12", level: "high" },
-  { title: "Carrier delay risk", detail: "3 late arrivals expected within 30 mins", level: "medium" },
-  { title: "Gate 3 lane clear", detail: "Queue dropped below threshold", level: "low" },
+const dispatchWindows = [
+  { slot: "10:00 - 10:30", lane: "Outbound 2", carrier: "BlueLine", count: 8 },
+  { slot: "10:30 - 11:00", lane: "Outbound 1", carrier: "PrimeCargo", count: 6 },
+  { slot: "11:00 - 11:30", lane: "Cross Dock", carrier: "NorthHaul", count: 5 },
 ] as const;
 
-const recentActivity = [
-  { time: "09:42", event: "Trailer TR-449 assigned to Dock D-08" },
-  { time: "09:33", event: "Carrier BlueLine checked in 4 units" },
-  { time: "09:21", event: "Zone C sweep completed by Yard Team 2" },
-  { time: "09:08", event: "Priority move created for load LD-5521" },
-  { time: "08:52", event: "Dock D-04 reopened after inspection" },
-];
+const snapshot = [
+  { label: "Units In Yard", value: "186", tone: "neutral" },
+  { label: "Moves Completed", value: "278", tone: "good" },
+  { label: "Gate In (hour)", value: "38", tone: "good" },
+  { label: "Gate Out (hour)", value: "24", tone: "warn" },
+  { label: "Avg Dwell", value: "42m", tone: "good" },
+  { label: "Exceptions", value: "11", tone: "high" },
+] as const;
+
+const bottlenecks = ["Dock D-12 turnover delay", "Zone B queue spillover", "Carrier Atlas late arrivals"];
+
+function pulseTone(occupancy: number) {
+  if (occupancy >= 90) return "high";
+  if (occupancy >= 80) return "warn";
+  return "good";
+}
 
 export default function Dashboard() {
   return (
@@ -35,38 +37,56 @@ export default function Dashboard() {
         <div>
           <h1 className="ops-title">Dashboard</h1>
           <p className="ops-subtitle">
-            Real-time snapshot of yard flow, gate pressure, and dock operations.
+            Command center view for yard pulse, dispatch windows, and pressure points.
           </p>
         </div>
-        <span className="ops-badge">Live Refresh UI</span>
+        <span className="ops-badge">Shift A</span>
       </header>
 
-      <section className="ops-kpi-grid">
-        {kpiCards.map((card) => (
-          <article key={card.label} className="ops-card">
-            <p className="ops-kpi-label">{card.label}</p>
-            <p className="ops-kpi-value">{card.value}</p>
-            <p className={`ops-kpi-delta ${card.tone}`}>{card.delta}</p>
-          </article>
-        ))}
+      <section className="ops-card dash-hero">
+        <div className="dash-hero-main">
+          <p className="dash-overline">Current Focus</p>
+          <h2>Balance outbound flow from Zone B before 11:00 cutoff.</h2>
+          <p>
+            Prioritize Dock D-08 and D-12 for release sequence. Gate 2 queue is rising faster than
+            forecast.
+          </p>
+        </div>
+        <div className="dash-hero-stats">
+          <div>
+            <p>On-time Dispatch</p>
+            <strong>92%</strong>
+          </div>
+          <div>
+            <p>Open Tasks</p>
+            <strong>17</strong>
+          </div>
+          <div>
+            <p>Blocked Units</p>
+            <strong>5</strong>
+          </div>
+        </div>
       </section>
 
-      <section className="ops-panel-grid">
-        <article className="ops-card ops-card-wide">
+      <section className="dash-main-grid">
+        <article className="ops-card">
           <div className="ops-card-header">
-            <h2>Dock Lane Utilization</h2>
-            <span className="ops-muted">Current shift</span>
+            <h2>Live Yard Pulse</h2>
+            <span className="ops-muted">By zone</span>
           </div>
           <div className="ops-progress-list">
-            {dockLanes.map((lane) => (
-              <div key={lane.label} className="ops-progress-row">
+            {zonePulse.map((zone) => (
+              <div key={zone.zone} className="ops-progress-row">
                 <div className="ops-progress-meta">
-                  <span>{lane.label}</span>
-                  <span>{lane.value}%</span>
+                  <span>{zone.zone}</span>
+                  <span>
+                    {zone.occupancy}% | Queue {zone.queue}
+                  </span>
                 </div>
                 <div className="ops-progress-track">
-                  <span style={{ width: `${lane.value}%` }} />
+                  <span style={{ width: `${zone.occupancy}%` }} />
                 </div>
+                <span className={`ops-pill ${pulseTone(zone.occupancy)}`}>{zone.target}</span>
               </div>
             ))}
           </div>
@@ -74,62 +94,53 @@ export default function Dashboard() {
 
         <article className="ops-card">
           <div className="ops-card-header">
-            <h2>Active Alerts</h2>
-            <span className="ops-muted">3 open</span>
+            <h2>Dispatch Windows</h2>
+            <span className="ops-muted">Next 90 mins</span>
           </div>
-          <ul className="ops-list">
-            {activeAlerts.map((alert) => (
-              <li key={alert.title} className="ops-list-item">
-                <div>
-                  <p className="ops-list-title">{alert.title}</p>
-                  <p className="ops-list-sub">{alert.detail}</p>
-                </div>
-                <span className={`ops-pill ${alert.level}`}>{alert.level}</span>
-              </li>
+          <div className="dash-window-list">
+            {dispatchWindows.map((window) => (
+              <article key={window.slot} className="dash-window-item">
+                <p className="dash-window-time">{window.slot}</p>
+                <p className="dash-window-main">
+                  {window.lane} • {window.carrier}
+                </p>
+                <span className="ops-pill neutral">{window.count} loads</span>
+              </article>
             ))}
-          </ul>
+          </div>
         </article>
       </section>
 
-      <section className="ops-panel-grid">
+      <section className="dash-bottom-grid">
         <article className="ops-card">
           <div className="ops-card-header">
-            <h2>Recent Activity</h2>
-            <span className="ops-muted">Last 60 mins</span>
+            <h2>Operational Snapshot</h2>
+            <span className="ops-muted">Live values</span>
           </div>
-          <ul className="ops-timeline">
-            {recentActivity.map((item) => (
-              <li key={`${item.time}-${item.event}`}>
-                <span>{item.time}</span>
-                <p>{item.event}</p>
-              </li>
+          <div className="dash-snapshot-grid">
+            {snapshot.map((item) => (
+              <div key={item.label} className="dash-snapshot-item">
+                <p>{item.label}</p>
+                <strong>{item.value}</strong>
+                <span className={`dash-dot ${item.tone}`} />
+              </div>
             ))}
-          </ul>
+          </div>
         </article>
 
         <article className="ops-card">
           <div className="ops-card-header">
-            <h2>Shift Targets</h2>
-            <span className="ops-muted">Visual only</span>
+            <h2>Top Bottlenecks</h2>
+            <span className="ops-muted">Needs attention</span>
           </div>
-          <div className="ops-target-grid">
-            <div>
-              <p>Planned moves</p>
-              <strong>420</strong>
-            </div>
-            <div>
-              <p>Completed</p>
-              <strong>278</strong>
-            </div>
-            <div>
-              <p>On-time rate</p>
-              <strong>92%</strong>
-            </div>
-            <div>
-              <p>Exceptions</p>
-              <strong>11</strong>
-            </div>
-          </div>
+          <ul className="dash-bottleneck-list">
+            {bottlenecks.map((item) => (
+              <li key={item}>
+                <span className="dash-alert-dot" />
+                <p>{item}</p>
+              </li>
+            ))}
+          </ul>
         </article>
       </section>
     </div>

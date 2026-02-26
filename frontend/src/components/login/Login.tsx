@@ -1,10 +1,18 @@
 import Backgrond from "./component/Background";
 import Loginform from "./component/Loginform";
 import LoginHead from "./component/LoginHead";
-import {Link} from "react-router-dom"
-import "./Login.css"
+import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import "./Login.css";
 
 export default function Login() {
+  useEffect(() => {
+    document.body.classList.add("login-view");
+    return () => {
+      document.body.classList.remove("login-view");
+    };
+  }, []);
+
   return (
     <>
       <Backgrond />
