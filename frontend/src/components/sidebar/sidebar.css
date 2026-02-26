@@ -120,7 +120,7 @@
   margin-top: auto;
 }
 
-.user-avatar {
+.sidebar-user-avatar {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -134,18 +134,18 @@
   flex-shrink: 0;
 }
 
-.user-info {
+.sidebar-user-info {
   flex: 1;
 }
 
-.user-name {
+.sidebar-user-name {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
   color: #ffffff;
 }
 
-.user-role {
+.sidebar-user-role {
   margin: 4px 0 0 0;
   font-size: 13px;
   color: #8f8f8f;

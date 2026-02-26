@@ -82,10 +82,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       <div className="sidebar-user">
-        <div className="user-avatar">{userProfile.initials}</div>
-        <div className="user-info">
-          <p className="user-name">{userProfile.name}</p>
-          <p className="user-role">{userProfile.role}</p>
+        <div className="sidebar-user-avatar">{userProfile.initials}</div>
+        <div className="sidebar-user-info">
+          <p className="sidebar-user-name">{userProfile.name}</p>
+          <p className="sidebar-user-role">{userProfile.role}</p>
         </div>
       </div>
       <button className="sidebar-logout" onClick={onLogout} type="button">
