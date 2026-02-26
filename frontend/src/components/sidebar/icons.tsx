@@ -76,6 +76,26 @@ export function IconChart({ className }: IconProps) {
   );
 }
 
+export function IconMapPin({ className }: IconProps) {
+  return (
+    <svg {...baseProps} className={className} aria-hidden="true">
+      <path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  );
+}
+
+export function IconTruck({ className }: IconProps) {
+  return (
+    <svg {...baseProps} className={className} aria-hidden="true">
+      <path d="M1 6h12v9H1z" />
+      <path d="M13 9h4l3 3v3h-7z" />
+      <circle cx="5" cy="18" r="2" />
+      <circle cx="16" cy="18" r="2" />
+    </svg>
+  );
+}
+
 export function IconUsers({ className }: IconProps) {
   return (
     <svg {...baseProps} className={className} aria-hidden="true">

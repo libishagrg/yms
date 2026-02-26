@@ -11,6 +11,8 @@ import VehiclesTrailers from "./pages/VehiclesTrailers";
 import GateActivity from "./pages/GateActivity";
 import Tasks from "./pages/Tasks";
 import Reports from "./pages/Reports";
+import Locations from "./pages/Locations";
+import Carriers from "./pages/Carriers";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 
@@ -31,6 +33,8 @@ export default function App() {
           <Route path="gate-activity" element={<GateActivity />} />
           <Route path="tasks" element={<Tasks />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="locations" element={<Locations />} />
+          <Route path="carriers" element={<Carriers />} />
           <Route path="users" element={<Users />} />
           <Route path="settings" element={<Settings />} />
         </Route>

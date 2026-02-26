@@ -16,9 +16,11 @@ import {
   IconClipboard,
   IconGate,
   IconGrid,
+  IconMapPin,
   IconMapFold,
   IconSettings,
   IconSwap,
+  IconTruck,
   IconUsers,
 } from "../sidebar/icons";
 import "./AppShell.css";
@@ -52,7 +54,11 @@ const menuSections: MenuSection[] = [
   },
   {
     title: "Analytics",
-    items: [{ id: "reports", label: "Reports", icon: <IconChart /> }],
+    items: [
+      { id: "reports", label: "Reports", icon: <IconChart /> },
+      { id: "locations", label: "Locations", icon: <IconMapPin /> },
+      { id: "carriers", label: "Carriers", icon: <IconTruck /> },
+    ],
   },
   {
     title: "Admin",
@@ -70,6 +76,8 @@ const routeByItemId: Record<MenuItemId, AppRoutePath> = {
   gate: "/gate-activity",
   tasks: "/tasks",
   reports: "/reports",
+  locations: "/locations",
+  carriers: "/carriers",
   users: "/users",
   settings: "/settings",
 };

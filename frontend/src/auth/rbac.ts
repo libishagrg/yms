@@ -15,6 +15,8 @@ export const appRoutePaths = [
   "/gate-activity",
   "/tasks",
   "/reports",
+  "/locations",
+  "/carriers",
   "/users",
   "/settings",
 ] as const;
@@ -28,6 +30,8 @@ export const menuItemIds = [
   "gate",
   "tasks",
   "reports",
+  "locations",
+  "carriers",
   "users",
   "settings",
 ] as const;
@@ -43,6 +47,8 @@ export const routeAccessMap: Record<AppRoutePath, readonly RoleName[]> = {
   "/gate-activity": ["Administrator", "Yard Manager", "Gate Security", "View Only"],
   "/tasks": ["Administrator", "Yard Manager", "Yard Jockey", "View Only"],
   "/reports": ["Administrator", "Yard Manager", "View Only"],
+  "/locations": ["Administrator", "Yard Manager", "View Only"],
+  "/carriers": ["Administrator", "Yard Manager", "View Only"],
   "/users": ["Administrator"],
   "/settings": ["Administrator"],
 };
@@ -54,6 +60,8 @@ export const menuItemAccessMap: Record<MenuItemId, readonly RoleName[]> = {
   gate: ["Administrator", "Yard Manager", "Gate Security", "View Only"],
   tasks: ["Administrator", "Yard Manager", "Yard Jockey", "View Only"],
   reports: ["Administrator", "Yard Manager", "View Only"],
+  locations: ["Administrator", "Yard Manager", "View Only"],
+  carriers: ["Administrator", "Yard Manager", "View Only"],
   users: ["Administrator"],
   settings: ["Administrator"],
 };
