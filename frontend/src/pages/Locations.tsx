@@ -1,142 +1,117 @@
-import { useMemo, useState, type FormEvent } from "react";
+import type { AxiosError } from "axios";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  createArea,
+  createDock,
+  createYard,
+  createZone,
+  deleteArea,
+  deleteDock,
+  deleteYard,
+  deleteZone,
+  getLocationTree,
+  updateArea,
+  updateDock,
+  updateYard,
+  updateZone,
+  type LocationArea,
+} from "../lib/api";
 import "./OperationsUi.css";
-
-type Dock = {
-  id: string;
-  name: string;
-};
-
-type Zone = {
-  id: string;
-  name: string;
-  docks: Dock[];
-};
-
-type Yard = {
-  id: string;
-  name: string;
-  zones: Zone[];
-};
-
-type Area = {
-  id: string;
-  name: string;
-  yards: Yard[];
-};
 
 type LocationKind = "area" | "yard" | "zone" | "dock";
 
 type EditTarget = {
   kind: LocationKind;
-  id: string;
-  areaId?: string;
-  yardId?: string;
-  zoneId?: string;
+  id: number;
+  areaId?: number;
+  yardId?: number;
+  zoneId?: number;
 };
 
-const initialHierarchy: Area[] = [
-  {
-    id: "area-1",
-    name: "North Area",
-    yards: [
-      {
-        id: "yard-1",
-        name: "Yard N1",
-        zones: [
-          {
-            id: "zone-1",
-            name: "Zone N1-A",
-            docks: [
-              { id: "dock-1", name: "N1-A-01" },
-              { id: "dock-2", name: "N1-A-02" },
-              { id: "dock-3", name: "N1-A-03" },
-            ],
-          },
-          {
-            id: "zone-2",
-            name: "Zone N1-B",
-            docks: [
-              { id: "dock-4", name: "N1-B-01" },
-              { id: "dock-5", name: "N1-B-02" },
-            ],
-          },
-        ],
-      },
-      {
-        id: "yard-2",
-        name: "Yard N2",
-        zones: [
-          {
-            id: "zone-3",
-            name: "Zone N2-A",
-            docks: [
-              { id: "dock-6", name: "N2-A-01" },
-              { id: "dock-7", name: "N2-A-02" },
-            ],
-          },
-          {
-            id: "zone-4",
-            name: "Zone N2-B",
-            docks: [
-              { id: "dock-8", name: "N2-B-01" },
-              { id: "dock-9", name: "N2-B-02" },
-              { id: "dock-10", name: "N2-B-03" },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "area-2",
-    name: "South Area",
-    yards: [
-      {
-        id: "yard-3",
-        name: "Yard S1",
-        zones: [
-          {
-            id: "zone-5",
-            name: "Zone S1-A",
-            docks: [
-              { id: "dock-11", name: "S1-A-01" },
-              { id: "dock-12", name: "S1-A-02" },
-            ],
-          },
-          {
-            id: "zone-6",
-            name: "Zone S1-B",
-            docks: [{ id: "dock-13", name: "S1-B-01" }],
-          },
-        ],
-      },
-    ],
-  },
-];
+type AddFormState = {
+  kind: LocationKind;
+  name: string;
+  areaId: string;
+  yardId: string;
+  zoneId: string;
+};
 
-const emptyAddForm = {
-  kind: "area" as LocationKind,
+const emptyAddForm: AddFormState = {
+  kind: "area",
   name: "",
   areaId: "",
   yardId: "",
   zoneId: "",
 };
 
-function createId(prefix: string) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`;
+const kindLabel: Record<LocationKind, string> = {
+  area: "Area",
+  yard: "Yard",
+  zone: "Zone",
+  dock: "Dock",
+};
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  const axiosError = error as AxiosError<{ message?: string }>;
+  return axiosError.response?.data?.message ?? fallback;
 }
 
 export default function Locations() {
-  const [areas, setAreas] = useState<Area[]>(initialHierarchy);
-  const [activeAreaId, setActiveAreaId] = useState(initialHierarchy[0]?.id ?? "");
+  const [areas, setAreas] = useState<LocationArea[]>([]);
+  const [activeAreaId, setActiveAreaId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [addForm, setAddForm] = useState(emptyAddForm);
+  const [addForm, setAddForm] = useState<AddFormState>(emptyAddForm);
   const [addError, setAddError] = useState("");
+  const [isAddSubmitting, setIsAddSubmitting] = useState(false);
 
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [editName, setEditName] = useState("");
   const [editError, setEditError] = useState("");
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+  const [deleteKey, setDeleteKey] = useState("");
+
+  const loadLocations = useCallback(async (silent = false) => {
+    if (!silent) {
+      setIsLoading(true);
+    }
+    try {
+      const data = await getLocationTree();
+      setAreas(data);
+      setLoadError(null);
+    } catch (error) {
+      setLoadError(getApiErrorMessage(error, "Failed to load locations."));
+    } finally {
+      if (!silent) {
+        setIsLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadLocations();
+  }, [loadLocations]);
+
+  useEffect(() => {
+    if (areas.length === 0) {
+      if (activeAreaId !== null) {
+        setActiveAreaId(null);
+      }
+      return;
+    }
+
+    const hasCurrentArea = activeAreaId !== null && areas.some((area) => area.id === activeAreaId);
+    if (!hasCurrentArea) {
+      setActiveAreaId(areas[0].id);
+    }
+  }, [areas, activeAreaId]);
+
+  const activeArea = useMemo(
+    () => (activeAreaId ? areas.find((area) => area.id === activeAreaId) ?? null : null),
+    [areas, activeAreaId],
+  );
 
   const stats = useMemo(() => {
     const yardCount = areas.reduce((acc, area) => acc + area.yards.length, 0);
@@ -158,15 +133,10 @@ export default function Locations() {
     return { areaCount: areas.length, yardCount, zoneCount, dockCount };
   }, [areas]);
 
-  const activeArea = useMemo(
-    () => areas.find((area) => area.id === activeAreaId) ?? areas[0] ?? null,
-    [areas, activeAreaId],
-  );
-
-  const selectedAreaId = addForm.areaId || activeArea?.id || "";
-  const areaForAdd = areas.find((area) => area.id === selectedAreaId);
+  const selectedAreaId = Number(addForm.areaId) || activeArea?.id || 0;
+  const areaForAdd = areas.find((area) => area.id === selectedAreaId) ?? null;
   const yardOptions = areaForAdd?.yards ?? [];
-  const zoneOptions = yardOptions.find((yard) => yard.id === addForm.yardId)?.zones ?? [];
+  const zoneOptions = yardOptions.find((yard) => yard.id === Number(addForm.yardId))?.zones ?? [];
 
   const editParentContext = useMemo(() => {
     if (!editTarget || editTarget.kind === "area") return "";
@@ -183,7 +153,7 @@ export default function Locations() {
   const openAddModal = () => {
     setAddForm({
       ...emptyAddForm,
-      areaId: activeArea?.id ?? "",
+      areaId: activeArea ? String(activeArea.id) : "",
     });
     setAddError("");
     setIsAddModalOpen(true);
@@ -210,14 +180,15 @@ export default function Locations() {
     setAddForm((prev) => ({
       ...prev,
       kind,
-      areaId: kind === "area" ? "" : prev.areaId || activeArea?.id || "",
+      areaId: kind === "area" ? "" : prev.areaId || (activeArea ? String(activeArea.id) : ""),
       yardId: kind === "zone" || kind === "dock" ? prev.yardId : "",
       zoneId: kind === "dock" ? prev.zoneId : "",
     }));
   };
 
-  const handleAddSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleAddSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setAddError("");
 
     const name = addForm.name.trim();
     if (!name) {
@@ -238,160 +209,104 @@ export default function Locations() {
       return;
     }
 
-    if (addForm.kind === "area") {
-      const nextAreaId = createId("area");
-      setAreas((prev) => [...prev, { id: nextAreaId, name, yards: [] }]);
-      setActiveAreaId(nextAreaId);
-      closeAddModal();
-      return;
-    }
+    setIsAddSubmitting(true);
+    try {
+      if (addForm.kind === "area") {
+        const createdArea = await createArea({ name });
+        setActiveAreaId(createdArea.id);
+      } else if (addForm.kind === "yard") {
+        await createYard({ name, areaId: Number(addForm.areaId) });
+      } else if (addForm.kind === "zone") {
+        await createZone({ name, yardId: Number(addForm.yardId) });
+      } else {
+        await createDock({ name, zoneId: Number(addForm.zoneId) });
+      }
 
-    if (addForm.kind === "yard") {
-      const nextYardId = createId("yard");
-      setAreas((prev) =>
-        prev.map((area) =>
-          area.id === addForm.areaId
-            ? { ...area, yards: [...area.yards, { id: nextYardId, name, zones: [] }] }
-            : area,
-        ),
-      );
       closeAddModal();
-      return;
+      await loadLocations(true);
+    } catch (error) {
+      setAddError(getApiErrorMessage(error, "Failed to add location."));
+    } finally {
+      setIsAddSubmitting(false);
     }
-
-    if (addForm.kind === "zone") {
-      const nextZoneId = createId("zone");
-      setAreas((prev) =>
-        prev.map((area) =>
-          area.id !== addForm.areaId
-            ? area
-            : {
-                ...area,
-                yards: area.yards.map((yard) =>
-                  yard.id === addForm.yardId
-                    ? { ...yard, zones: [...yard.zones, { id: nextZoneId, name, docks: [] }] }
-                    : yard,
-                ),
-              },
-        ),
-      );
-      closeAddModal();
-      return;
-    }
-
-    const nextDockId = createId("dock");
-    setAreas((prev) =>
-      prev.map((area) =>
-        area.id !== addForm.areaId
-          ? area
-          : {
-              ...area,
-              yards: area.yards.map((yard) =>
-                yard.id !== addForm.yardId
-                  ? yard
-                  : {
-                      ...yard,
-                      zones: yard.zones.map((zone) =>
-                        zone.id === addForm.zoneId
-                          ? { ...zone, docks: [...zone.docks, { id: nextDockId, name }] }
-                          : zone,
-                      ),
-                    },
-              ),
-            },
-      ),
-    );
-    closeAddModal();
   };
 
-  const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleEditSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     if (!editTarget) return;
+
     const name = editName.trim();
     if (!name) {
       setEditError("Name is required.");
       return;
     }
 
-    if (editTarget.kind === "area") {
-      setAreas((prev) => prev.map((area) => (area.id === editTarget.id ? { ...area, name } : area)));
-      closeEditModal();
-      return;
-    }
+    setIsEditSubmitting(true);
+    setEditError("");
+    try {
+      if (editTarget.kind === "area") {
+        await updateArea(editTarget.id, { name });
+      } else if (editTarget.kind === "yard") {
+        await updateYard(editTarget.id, { name });
+      } else if (editTarget.kind === "zone") {
+        await updateZone(editTarget.id, { name });
+      } else {
+        await updateDock(editTarget.id, { name });
+      }
 
-    if (editTarget.kind === "yard") {
-      setAreas((prev) =>
-        prev.map((area) =>
-          area.id !== editTarget.areaId
-            ? area
-            : {
-                ...area,
-                yards: area.yards.map((yard) => (yard.id === editTarget.id ? { ...yard, name } : yard)),
-              },
-        ),
-      );
       closeEditModal();
-      return;
+      await loadLocations(true);
+    } catch (error) {
+      setEditError(getApiErrorMessage(error, "Failed to save changes."));
+    } finally {
+      setIsEditSubmitting(false);
     }
-
-    if (editTarget.kind === "zone") {
-      setAreas((prev) =>
-        prev.map((area) =>
-          area.id !== editTarget.areaId
-            ? area
-            : {
-                ...area,
-                yards: area.yards.map((yard) =>
-                  yard.id !== editTarget.yardId
-                    ? yard
-                    : {
-                        ...yard,
-                        zones: yard.zones.map((zone) => (zone.id === editTarget.id ? { ...zone, name } : zone)),
-                      },
-                ),
-              },
-        ),
-      );
-      closeEditModal();
-      return;
-    }
-
-    setAreas((prev) =>
-      prev.map((area) =>
-        area.id !== editTarget.areaId
-          ? area
-          : {
-              ...area,
-              yards: area.yards.map((yard) =>
-                yard.id !== editTarget.yardId
-                  ? yard
-                  : {
-                      ...yard,
-                      zones: yard.zones.map((zone) =>
-                        zone.id !== editTarget.zoneId
-                          ? zone
-                          : {
-                              ...zone,
-                              docks: zone.docks.map((dock) => (dock.id === editTarget.id ? { ...dock, name } : dock)),
-                            },
-                      ),
-                    },
-              ),
-            },
-      ),
-    );
-    closeEditModal();
   };
+
+  const handleDelete = async (target: EditTarget, displayName: string) => {
+    const label = kindLabel[target.kind];
+    const confirmed = window.confirm(`Delete ${label} "${displayName}"? This action cannot be undone.`);
+    if (!confirmed) {
+      return;
+    }
+
+    const key = `${target.kind}-${target.id}`;
+    setDeleteKey(key);
+    try {
+      if (target.kind === "area") {
+        await deleteArea(target.id);
+      } else if (target.kind === "yard") {
+        await deleteYard(target.id);
+      } else if (target.kind === "zone") {
+        await deleteZone(target.id);
+      } else {
+        await deleteDock(target.id);
+      }
+
+      await loadLocations(true);
+    } catch (error) {
+      window.alert(getApiErrorMessage(error, `Failed to delete ${label.toLowerCase()}.`));
+    } finally {
+      setDeleteKey("");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="ops-page">
+        <section className="ops-card">
+          <p className="loc-empty">Loading locations...</p>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="ops-page">
       <header className="ops-header">
         <div>
           <h1 className="ops-title">Locations</h1>
-          <p className="ops-subtitle">
-            Area-focused location view with add/edit actions for Area, Yard, Zone, and Dock.
-          </p>
+          <p className="ops-subtitle">Manage Area > Yard > Zone > Dock hierarchy with add, edit, and delete.</p>
         </div>
         <div className="ops-header-actions">
           <button type="button" className="ops-action-btn ops-action-btn-primary" onClick={openAddModal}>
@@ -399,6 +314,15 @@ export default function Locations() {
           </button>
         </div>
       </header>
+
+      {loadError ? (
+        <section className="ops-card">
+          <p className="ops-form-error">{loadError}</p>
+          <button type="button" className="ops-action-btn" onClick={() => void loadLocations()}>
+            Retry
+          </button>
+        </section>
+      ) : null}
 
       <section className="ops-kpi-grid">
         <article className="ops-card">
@@ -424,111 +348,190 @@ export default function Locations() {
           <h2>Areas</h2>
           <span className="ops-muted">View one area at a time</span>
         </div>
-        <div className="loc-area-switch">
-          {areas.map((area) => (
-            <button
-              key={area.id}
-              type="button"
-              className={`loc-area-btn ${area.id === activeArea?.id ? "active" : ""}`}
-              onClick={() => setActiveAreaId(area.id)}
-            >
-              {area.name}
-            </button>
-          ))}
-        </div>
+        {areas.length === 0 ? (
+          <p className="loc-empty">No areas available. Add your first area.</p>
+        ) : (
+          <div className="loc-area-switch">
+            {areas.map((area) => (
+              <button
+                key={area.id}
+                type="button"
+                className={`loc-area-btn ${area.id === activeArea?.id ? "active" : ""}`}
+                onClick={() => setActiveAreaId(area.id)}
+              >
+                {area.name}
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
-      {activeArea && (
+      {activeArea ? (
         <section className="ops-card">
           <div className="ops-card-header">
             <h2>{activeArea.name}</h2>
-            <button
-              type="button"
-              className="ops-mini-btn"
-              onClick={() => openEditModal({ kind: "area", id: activeArea.id }, activeArea.name)}
-            >
-              Edit Area
-            </button>
+            <div className="ops-inline-actions">
+              <button
+                type="button"
+                className="ops-mini-btn"
+                onClick={() => openEditModal({ kind: "area", id: activeArea.id }, activeArea.name)}
+              >
+                Edit Area
+              </button>
+              <button
+                type="button"
+                className="ops-mini-btn ops-mini-btn-danger"
+                onClick={() => void handleDelete({ kind: "area", id: activeArea.id }, activeArea.name)}
+                disabled={deleteKey === `area-${activeArea.id}`}
+              >
+                Delete Area
+              </button>
+            </div>
           </div>
 
           <div className="loc-yard-stack">
-            {activeArea.yards.map((yard) => (
-              <article key={yard.id} className="loc-yard-card">
-                <div className="loc-item-header">
-                  <h3>{yard.name}</h3>
-                  <button
-                    type="button"
-                    className="ops-mini-btn"
-                    onClick={() =>
-                      openEditModal({ kind: "yard", id: yard.id, areaId: activeArea.id }, yard.name)
-                    }
-                  >
-                    Edit Yard
-                  </button>
-                </div>
+            {activeArea.yards.length === 0 ? (
+              <p className="loc-empty">No yards in this area yet.</p>
+            ) : (
+              activeArea.yards.map((yard) => (
+                <article key={yard.id} className="loc-yard-card">
+                  <div className="loc-item-header">
+                    <h3>{yard.name}</h3>
+                    <div className="ops-inline-actions">
+                      <button
+                        type="button"
+                        className="ops-mini-btn"
+                        onClick={() =>
+                          openEditModal({ kind: "yard", id: yard.id, areaId: activeArea.id }, yard.name)
+                        }
+                      >
+                        Edit Yard
+                      </button>
+                      <button
+                        type="button"
+                        className="ops-mini-btn ops-mini-btn-danger"
+                        onClick={() =>
+                          void handleDelete(
+                            { kind: "yard", id: yard.id, areaId: activeArea.id },
+                            yard.name,
+                          )
+                        }
+                        disabled={deleteKey === `yard-${yard.id}`}
+                      >
+                        Delete Yard
+                      </button>
+                    </div>
+                  </div>
 
-                <div className="loc-zone-grid">
-                  {yard.zones.map((zone) => (
-                    <section key={zone.id} className="loc-zone-card">
-                      <div className="loc-item-header">
-                        <h4>{zone.name}</h4>
-                        <button
-                          type="button"
-                          className="ops-mini-btn"
-                          onClick={() =>
-                            openEditModal(
-                              {
-                                kind: "zone",
-                                id: zone.id,
-                                areaId: activeArea.id,
-                                yardId: yard.id,
-                              },
-                              zone.name,
-                            )
-                          }
-                        >
-                          Edit Zone
-                        </button>
-                      </div>
-
-                      <div className="loc-dock-grid">
-                        {zone.docks.map((dock) => (
-                          <div key={dock.id} className="loc-dock-item">
-                            <span>{dock.name}</span>
-                            <button
-                              type="button"
-                              className="ops-mini-btn"
-                              onClick={() =>
-                                openEditModal(
-                                  {
-                                    kind: "dock",
-                                    id: dock.id,
-                                    areaId: activeArea.id,
-                                    yardId: yard.id,
-                                    zoneId: zone.id,
-                                  },
-                                  dock.name,
-                                )
-                              }
-                            >
-                              Edit
-                            </button>
+                  <div className="loc-zone-grid">
+                    {yard.zones.length === 0 ? (
+                      <p className="loc-empty">No zones yet.</p>
+                    ) : (
+                      yard.zones.map((zone) => (
+                        <section key={zone.id} className="loc-zone-card">
+                          <div className="loc-item-header">
+                            <h4>{zone.name}</h4>
+                            <div className="ops-inline-actions">
+                              <button
+                                type="button"
+                                className="ops-mini-btn"
+                                onClick={() =>
+                                  openEditModal(
+                                    {
+                                      kind: "zone",
+                                      id: zone.id,
+                                      areaId: activeArea.id,
+                                      yardId: yard.id,
+                                    },
+                                    zone.name,
+                                  )
+                                }
+                              >
+                                Edit Zone
+                              </button>
+                              <button
+                                type="button"
+                                className="ops-mini-btn ops-mini-btn-danger"
+                                onClick={() =>
+                                  void handleDelete(
+                                    {
+                                      kind: "zone",
+                                      id: zone.id,
+                                      areaId: activeArea.id,
+                                      yardId: yard.id,
+                                    },
+                                    zone.name,
+                                  )
+                                }
+                                disabled={deleteKey === `zone-${zone.id}`}
+                              >
+                                Delete Zone
+                              </button>
+                            </div>
                           </div>
-                        ))}
-                        {zone.docks.length === 0 && <p className="loc-empty">No docks yet.</p>}
-                      </div>
-                    </section>
-                  ))}
-                  {yard.zones.length === 0 && <p className="loc-empty">No zones yet.</p>}
-                </div>
-              </article>
-            ))}
-            {activeArea.yards.length === 0 && <p className="loc-empty">No yards in this area yet.</p>}
+
+                          <div className="loc-dock-grid">
+                            {zone.docks.length === 0 ? (
+                              <p className="loc-empty">No docks yet.</p>
+                            ) : (
+                              zone.docks.map((dock) => (
+                                <div key={dock.id} className="loc-dock-item">
+                                  <span>{dock.name}</span>
+                                  <div className="ops-inline-actions">
+                                    <button
+                                      type="button"
+                                      className="ops-mini-btn"
+                                      onClick={() =>
+                                        openEditModal(
+                                          {
+                                            kind: "dock",
+                                            id: dock.id,
+                                            areaId: activeArea.id,
+                                            yardId: yard.id,
+                                            zoneId: zone.id,
+                                          },
+                                          dock.name,
+                                        )
+                                      }
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="ops-mini-btn ops-mini-btn-danger"
+                                      onClick={() =>
+                                        void handleDelete(
+                                          {
+                                            kind: "dock",
+                                            id: dock.id,
+                                            areaId: activeArea.id,
+                                            yardId: yard.id,
+                                            zoneId: zone.id,
+                                          },
+                                          dock.name,
+                                        )
+                                      }
+                                      disabled={deleteKey === `dock-${dock.id}`}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </section>
+                      ))
+                    )}
+                  </div>
+                </article>
+              ))
+            )}
           </div>
         </section>
-      )}
+      ) : null}
 
-      {isAddModalOpen && (
+      {isAddModalOpen ? (
         <div className="ops-modal-backdrop" role="presentation" onClick={closeAddModal}>
           <div className="ops-modal-card" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
             <div className="ops-modal-header">
@@ -537,7 +540,7 @@ export default function Locations() {
                 x
               </button>
             </div>
-            <form className="ops-form-grid" onSubmit={handleAddSubmit}>
+            <form className="ops-form-grid" onSubmit={(event) => void handleAddSubmit(event)}>
               <label className="ops-form-field">
                 Type
                 <select
@@ -562,7 +565,7 @@ export default function Locations() {
                 />
               </label>
 
-              {addForm.kind !== "area" && (
+              {addForm.kind !== "area" ? (
                 <label className="ops-form-field">
                   Parent Area
                   <select
@@ -580,17 +583,15 @@ export default function Locations() {
                     ))}
                   </select>
                 </label>
-              )}
+              ) : null}
 
-              {(addForm.kind === "zone" || addForm.kind === "dock") && (
+              {addForm.kind === "zone" || addForm.kind === "dock" ? (
                 <label className="ops-form-field">
                   Parent Yard
                   <select
                     className="ops-select"
                     value={addForm.yardId}
-                    onChange={(event) =>
-                      setAddForm((prev) => ({ ...prev, yardId: event.target.value, zoneId: "" }))
-                    }
+                    onChange={(event) => setAddForm((prev) => ({ ...prev, yardId: event.target.value, zoneId: "" }))}
                   >
                     <option value="">Select yard</option>
                     {yardOptions.map((yard) => (
@@ -600,9 +601,9 @@ export default function Locations() {
                     ))}
                   </select>
                 </label>
-              )}
+              ) : null}
 
-              {addForm.kind === "dock" && (
+              {addForm.kind === "dock" ? (
                 <label className="ops-form-field">
                   Parent Zone
                   <select
@@ -618,33 +619,33 @@ export default function Locations() {
                     ))}
                   </select>
                 </label>
-              )}
+              ) : null}
 
-              {addError && <p className="ops-form-error">{addError}</p>}
+              {addError ? <p className="ops-form-error">{addError}</p> : null}
               <div className="ops-modal-actions">
-                <button type="button" className="ops-action-btn" onClick={closeAddModal}>
+                <button type="button" className="ops-action-btn" onClick={closeAddModal} disabled={isAddSubmitting}>
                   Cancel
                 </button>
-                <button type="submit" className="ops-action-btn ops-action-btn-primary">
-                  Add
+                <button type="submit" className="ops-action-btn ops-action-btn-primary" disabled={isAddSubmitting}>
+                  {isAddSubmitting ? "Saving..." : "Add"}
                 </button>
               </div>
             </form>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {editTarget && (
+      {editTarget ? (
         <div className="ops-modal-backdrop" role="presentation" onClick={closeEditModal}>
           <div className="ops-modal-card" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
             <div className="ops-modal-header">
-              <h3>Edit {editTarget.kind}</h3>
+              <h3>Edit {kindLabel[editTarget.kind]}</h3>
               <button type="button" className="ops-modal-close" onClick={closeEditModal}>
                 x
               </button>
             </div>
-            <form className="ops-form-grid" onSubmit={handleEditSubmit}>
-              {editParentContext && <p className="ops-muted-inline">{editParentContext}</p>}
+            <form className="ops-form-grid" onSubmit={(event) => void handleEditSubmit(event)}>
+              {editParentContext ? <p className="ops-muted-inline">{editParentContext}</p> : null}
               <label className="ops-form-field ops-form-field-wide">
                 Name
                 <input
@@ -654,20 +655,19 @@ export default function Locations() {
                   placeholder="Enter name"
                 />
               </label>
-              {editError && <p className="ops-form-error">{editError}</p>}
+              {editError ? <p className="ops-form-error">{editError}</p> : null}
               <div className="ops-modal-actions">
-                <button type="button" className="ops-action-btn" onClick={closeEditModal}>
+                <button type="button" className="ops-action-btn" onClick={closeEditModal} disabled={isEditSubmitting}>
                   Cancel
                 </button>
-                <button type="submit" className="ops-action-btn ops-action-btn-primary">
-                  Save
+                <button type="submit" className="ops-action-btn ops-action-btn-primary" disabled={isEditSubmitting}>
+                  {isEditSubmitting ? "Saving..." : "Save"}
                 </button>
               </div>
             </form>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
-

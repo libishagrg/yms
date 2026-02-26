@@ -20,6 +20,7 @@ public class Program
 {
     private const string AuthenticatedUserPolicy = "AuthenticatedUser";
     private const string AdminOnlyPolicy = "AdminOnly";
+    private const string ManageOperationsPolicy = "ManageOperations";
 
     private static readonly HashSet<string> PublicSignupRoleKeys = new(StringComparer.Ordinal)
     {
@@ -90,6 +91,8 @@ public class Program
                 policy.RequireAuthenticatedUser());
             options.AddPolicy(AdminOnlyPolicy, policy =>
                 policy.RequireRole("Administrator"));
+            options.AddPolicy(ManageOperationsPolicy, policy =>
+                policy.RequireRole("Administrator", "Yard Manager"));
         });
 
         builder.Services.AddEndpointsApiExplorer();
@@ -117,6 +120,7 @@ public class Program
             }
 
             await db.Database.EnsureCreatedAsync();
+            await OperationsSchemaBootstrapper.EnsureOperationsTablesAsync(db);
 
             await IdentitySeeder.SeedAsync(scope.ServiceProvider);
         }
@@ -599,6 +603,8 @@ public class Program
             return Results.Ok(users);
         }).RequireAuthorization(AdminOnlyPolicy);
 
+        app.MapOperationsEndpoints();
+
         app.Run();
     }
 
@@ -771,6 +777,68 @@ public class SmtpSettings
 public class AppDbContext : IdentityDbContext<AppUser, IdentityRole<int>, int>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    public DbSet<Area> Areas => Set<Area>();
+    public DbSet<Yard> Yards => Set<Yard>();
+    public DbSet<Zone> Zones => Set<Zone>();
+    public DbSet<Dock> Docks => Set<Dock>();
+    public DbSet<Carrier> Carriers => Set<Carrier>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Area>(entity =>
+        {
+            entity.ToTable("Areas");
+            entity.Property(entry => entry.Name).IsRequired().HasMaxLength(100);
+            entity.HasIndex(entry => entry.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<Yard>(entity =>
+        {
+            entity.ToTable("Yards");
+            entity.Property(entry => entry.Name).IsRequired().HasMaxLength(100);
+            entity.HasIndex(entry => new { entry.AreaId, entry.Name }).IsUnique();
+            entity.HasOne(entry => entry.Area)
+                .WithMany(area => area.Yards)
+                .HasForeignKey(entry => entry.AreaId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Zone>(entity =>
+        {
+            entity.ToTable("Zones");
+            entity.Property(entry => entry.Name).IsRequired().HasMaxLength(100);
+            entity.HasIndex(entry => new { entry.YardId, entry.Name }).IsUnique();
+            entity.HasOne(entry => entry.Yard)
+                .WithMany(yard => yard.Zones)
+                .HasForeignKey(entry => entry.YardId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Dock>(entity =>
+        {
+            entity.ToTable("Docks");
+            entity.Property(entry => entry.Name).IsRequired().HasMaxLength(100);
+            entity.HasIndex(entry => new { entry.ZoneId, entry.Name }).IsUnique();
+            entity.HasOne(entry => entry.Zone)
+                .WithMany(zone => zone.Docks)
+                .HasForeignKey(entry => entry.ZoneId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Carrier>(entity =>
+        {
+            entity.ToTable("Carriers");
+            entity.Property(entry => entry.Name).IsRequired().HasMaxLength(120);
+            entity.Property(entry => entry.Scac).HasMaxLength(30);
+            entity.Property(entry => entry.ContactPerson).HasMaxLength(120);
+            entity.Property(entry => entry.ContactPhone).HasMaxLength(40);
+            entity.Property(entry => entry.Notes).HasMaxLength(300);
+            entity.HasIndex(entry => entry.Name).IsUnique();
+        });
+    }
 }
 
 public class AppUser : IdentityUser<int>
